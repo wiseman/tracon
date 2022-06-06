@@ -137,7 +137,7 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
             aircraft.ground_speed_knots,
             aircraft.geometric_altitude,
         ) {
-            if gnd_speed > 350.0 && alt <= 10000 {
+            if gnd_speed > 350.0 {
                 let hex = aircraft.hex.clone();
                 let time_seen_fast = response.now;
                 match state.fast_movers.iter().position(|m| m.hex == hex) {
