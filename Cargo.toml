@@ -10,6 +10,7 @@ anyhow = "1.0.53"
 adsbx_json = "10"
 bzip2 = "0.4"
 chrono = "0.4"
+geo = "0"
 indicatif = { version = "0.16", features = ["rayon"] }
 pariter = "0.5"
 rstar = "0.9.3"
