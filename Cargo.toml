@@ -15,3 +15,4 @@ indicatif = { version = "0.16", features = ["rayon"] }
 pariter = "0.5"
 rstar = "0.9.3"
 structopt = "0.3"
+thiserror = "1"
