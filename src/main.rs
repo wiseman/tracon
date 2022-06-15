@@ -78,14 +78,22 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
                 && fast_mover.fast_count >= 10
                 && ((now - fast_mover.seen) < Duration::minutes(1))
             {
-                let targets =
-                    spatial_index.locate_within_distance(fast_mover.coords, max_dist_deg_2);
+                let most_recent_fast_mover_coords = *fast_mover.coords.iter().last().unwrap();
+                let targets = spatial_index
+                    .locate_within_distance(most_recent_fast_mover_coords, max_dist_deg_2);
                 for target in targets {
                     let target_pt = point!(x: target.geom()[0], y: target.geom()[1]);
-                    let fast_mover_pt = point!(x: fast_mover.coords[0], y: fast_mover.coords[1]);
+                    let fast_mover_pt = point!(x: most_recent_fast_mover_coords[0], y: most_recent_fast_mover_coords[1]);
                     let dist = target_pt.haversine_distance(&fast_mover_pt);
+                    let past_fast_mover_coords = fast_mover.coords[0];
+                    let past_target_coords = target.data.coords[0];
+                    let past_target_pt = point!(x: past_target_coords[0], y: past_target_coords[1]);
+                    let past_fast_mover_pt =
+                        point!(x: past_fast_mover_coords[0], y: past_fast_mover_coords[1]);
+                    let past_dist = past_target_pt.haversine_distance(&past_fast_mover_pt);
                     if target.data.hex != fast_mover.hex
                         && dist < 500.0
+                        && past_dist > 16000.0
                         && !target.data.is_on_ground
                         && (target.data.cur_speed - fast_mover.cur_speed).abs() < 250.0
                         && (target.data.cur_alt - fast_mover.cur_alt).abs() < 500
@@ -118,7 +126,8 @@ fn url(fast_mover: &FastMover, target: &Target, now: DateTime<Utc>) -> String {
     url.push_str(&target.hex);
     url.push_str("&showTrace=");
     url.push_str(&now.format("%Y-%m-%d").to_string());
-    url.push_str(format!("&lat={}&lon={}", fast_mover.coords[1], fast_mover.coords[0]).as_str());
+    let coords = fast_mover.coords.iter().last().unwrap();
+    url.push_str(format!("&lat={}&lon={}", coords[1], coords[0]).as_str());
     url.push_str("&zoom=11");
     let start_time = now - Duration::minutes(5);
     // ADSBX startTime and endTime params only have 1 minute resolution, so
