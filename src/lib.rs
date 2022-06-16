@@ -93,7 +93,7 @@ pub const FAST_MOVER_TIMEOUT_MINS: i64 = 3;
 #[derive(Debug)]
 pub struct FastMover {
     pub hex: String,
-    pub coords: Vec<[f64; 2]>,
+    pub coords: [f64; 2],
     pub max_speed: f64,
     pub cur_speed: f64,
     pub cur_alt: i32,
@@ -147,7 +147,7 @@ impl FastMover {
         };
         Ok(FastMover {
             hex: aircraft.hex.clone(),
-            coords: vec![[lon, lat]],
+            coords: [lon, lat],
             max_speed: spd,
             cur_speed: spd,
             cur_alt: alt,
@@ -178,12 +178,7 @@ impl FastMover {
         });
         self.is_on_ground = aircraft_is_on_ground(aircraft);
         self.seen = now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
-        self.coords
-            .push([aircraft.lon.unwrap(), aircraft.lat.unwrap()]);
-        // Only keep the last 40 coordinates.
-        if self.coords.len() > 40 {
-            self.coords.drain(0..1);
-        }
+        self.coords = [aircraft.lon.unwrap(), aircraft.lat.unwrap()];
     }
 }
 
@@ -200,7 +195,6 @@ pub fn aircraft_is_on_ground(aircraft: &Aircraft) -> bool {
 #[derive(Debug)]
 pub struct Target {
     pub hex: String,
-    pub coords: Vec<[f64; 2]>,
     pub cur_speed: f64,
     pub cur_alt: i32,
     pub is_on_ground: bool,
@@ -211,23 +205,10 @@ impl Target {
     pub fn new(now: DateTime<Utc>, aircraft: &Aircraft) -> Self {
         Self {
             hex: aircraft.hex.clone(),
-            coords: vec![[aircraft.lon.unwrap(), aircraft.lat.unwrap()]],
             cur_speed: aircraft.ground_speed_knots.unwrap_or(0.0),
             cur_alt: aircraft.geometric_altitude.unwrap_or(0),
             is_on_ground: aircraft_is_on_ground(aircraft),
             seen: now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap(),
-        }
-    }
-
-    pub fn update(&mut self, aircraft: &Aircraft) {
-        self.cur_speed = aircraft.ground_speed_knots.unwrap_or(0.0);
-        self.cur_alt = aircraft.geometric_altitude.unwrap_or(0);
-        self.is_on_ground = aircraft_is_on_ground(aircraft);
-        self.coords
-            .push([aircraft.lon.unwrap(), aircraft.lat.unwrap()]);
-        // Only keep the last 40 coordinates.
-        if self.coords.len() > 40 {
-            self.coords.drain(0..1);
         }
     }
 }
