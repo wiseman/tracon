@@ -2,8 +2,8 @@ use anyhow::Result;
 use chrono::{prelude::*, Duration};
 use geo::{point, prelude::*};
 use interceptiondetector::{
-    for_each_adsbx_json, FastMover, Target, TargetLocation, FAST_MOVER_SPEED_KTS,
-    FAST_MOVER_TIMEOUT_MINS,
+    aircraft_is_on_ground, for_each_adsbx_json, FastMover, Interception, Target, TargetLocation,
+    FAST_MOVER_SPEED_KTS, FAST_MOVER_TIMEOUT_MINS,
 };
 use rstar::RTree;
 use structopt::StructOpt;
@@ -21,6 +21,9 @@ struct CliArgs {
 #[derive(Debug, Default)]
 struct State {
     fast_movers: Vec<FastMover>,
+    num_ac_indexed: usize,
+    num_ac_processed: usize,
+    interceptions: Vec<Interception>,
 }
 
 fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response) {
@@ -34,13 +37,17 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
             aircraft.geometric_altitude,
         ) {
             let hex = &aircraft.hex;
+            if aircraft_is_on_ground(aircraft) {
+                // We don't care about on-ground aircraft.
+                continue;
+            }
             match state.fast_movers.iter().position(|m| &m.hex == hex) {
                 None => {
                     if gnd_speed > FAST_MOVER_SPEED_KTS {
                         state
                             .fast_movers
                             .push(FastMover::new(now, aircraft).unwrap());
-                    } else if gnd_speed < 250.0 {
+                    } else if gnd_speed < 250.0 && gnd_speed > 80.0 {
                         slow_movers
                             .push(TargetLocation::new([lon, lat], Target::new(now, aircraft)));
                     }
@@ -68,8 +75,9 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
         // Earth, but we're not usually looking at planes flying over a pole.
         //
         // An alternative might be to use H3?
+        state.num_ac_indexed += &slow_movers.len();
         let spatial_index = RTree::bulk_load(slow_movers);
-        const MAX_DIST_NM: f64 = 3.0;
+        const MAX_DIST_NM: f64 = 0.5;
         let max_dist_deg_2 = (MAX_DIST_NM / 60.0).powi(2);
 
         // Now look for non-fast movers that are close to known fast movers.
@@ -81,25 +89,40 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
                 let targets =
                     spatial_index.locate_within_distance(fast_mover.coords, max_dist_deg_2);
                 for target in targets {
+                    state.num_ac_processed += 1;
                     let target_pt = point!(x: target.geom()[0], y: target.geom()[1]);
                     let fast_mover_pt = point!(x: fast_mover.coords[0], y: fast_mover.coords[1]);
                     let dist = target_pt.haversine_distance(&fast_mover_pt);
+                    let alt_diff = (target.data.cur_alt - fast_mover.cur_alt).abs();
                     if target.data.hex != fast_mover.hex
                         && dist < 500.0
                         && !target.data.is_on_ground
                         && (target.data.cur_speed - fast_mover.cur_speed).abs() < 250.0
-                        && (target.data.cur_alt - fast_mover.cur_alt).abs() < 500
+                        && alt_diff < 500
                         && ((now - target.data.seen) < Duration::minutes(1))
                     {
-                        println!(
-                            "{} might have intercepted {} at {} ({:.1} m) {:?} {:?}: {}",
-                            fast_mover.hex,
-                            target.data.hex,
-                            now,
-                            dist,
-                            fast_mover.coords,
-                            target.geom(),
-                            url(fast_mover, &target.data, now)
+                        // Consider this a duplicate interception if the same
+                        // fast_mover intercepted the same target within the
+                        // past 10 minutes.
+                        if state.interceptions.iter().any(|i| {
+                            i.fast_mover.hex == fast_mover.hex
+                                && i.target.hex == target.data.hex
+                                && i.time > now - Duration::minutes(10)
+                        }) {
+                            continue;
+                        }
+
+                        let interception = Interception {
+                            fast_mover: fast_mover.clone(),
+                            target: target.data.clone(),
+                            lateral_separation_ft: dist * 3.28084,
+                            vertical_separation_ft: alt_diff,
+                            time: now,
+                        };
+                        state.interceptions.push(interception);
+                        eprintln!(
+                            "\n{} might have intercepted {} at {}",
+                            fast_mover.hex, target.data.hex, now,
                         );
                     }
                 }
@@ -124,9 +147,9 @@ fn url(fast_mover: &FastMover, target: &Target, now: DateTime<Utc>) -> String {
     // ADSBX startTime and endTime params only have 1 minute resolution, so
     // let's add 1 minute to make sure we actually cover the time of
     // interception.
-    let end_time = now + Duration::minutes(1);
+    let end_time = now + Duration::minutes(0);
     url.push_str(format!("&startTime={}", start_time.format("%H:%M")).as_str());
-    url.push_str(format!("&endTime={}", end_time.format("%H:%M")).as_str());
+    url.push_str(format!("&endTime={}", end_time.format("%H:%M:%S")).as_str());
     url
 }
 
@@ -138,5 +161,22 @@ fn main() -> Result<(), String> {
         process_adsbx_response(&mut state, response)
     })
     .unwrap();
+    eprintln!(
+        "Indexed {} aircraft, processed {} aircraft, found {} interceptions",
+        state.num_ac_indexed,
+        state.num_ac_processed,
+        state.interceptions.len()
+    );
+    for interception in state.interceptions {
+        println!("{} intercepted {} at {} with {:.0} ft lateral separation, {} ft vertical separation {}"
+            , interception.fast_mover.hex
+            , interception.target.hex
+            , interception.time
+            , interception.lateral_separation_ft.round()
+            , interception.vertical_separation_ft
+            , url(&interception.fast_mover, &interception.target, interception.time)
+        );
+    }
+
     Ok(())
 }

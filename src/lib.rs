@@ -90,7 +90,7 @@ pub const FAST_MOVER_SPEED_KTS: f64 = 350.0;
 pub const FAST_MOVER_TIMEOUT_MINS: i64 = 3;
 
 /// A fast mover is an aircraft that has been moving at high speed.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FastMover {
     pub hex: String,
     pub coords: [f64; 2],
@@ -192,7 +192,7 @@ pub fn aircraft_is_on_ground(aircraft: &Aircraft) -> bool {
 
 /// Represents a potential target (slower-moving) aircraft.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Target {
     pub hex: String,
     pub cur_speed: f64,
@@ -217,3 +217,12 @@ impl Target {
 /// slow-movers near fast-movers.
 
 pub type TargetLocation = GeomWithData<[f64; 2], Target>;
+
+#[derive(Debug)]
+pub struct Interception {
+    pub fast_mover: FastMover,
+    pub target: Target,
+    pub time: DateTime<Utc>,
+    pub lateral_separation_ft: f64,
+    pub vertical_separation_ft: i32,
+}
