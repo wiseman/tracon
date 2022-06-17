@@ -82,32 +82,41 @@ pub fn alt_number(alt: AltitudeOrGround) -> i32 {
     }
 }
 
-/// The speed threshold to be considered a "fast mover".
-pub const FAST_MOVER_SPEED_KTS: f64 = 350.0;
+/// The speed threshold to be considered an interceptor.
+pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 350.0;
 
-/// The length of time a fast mover must travel below FAST_MOVER_SPEED_KTS to
-/// lost "fast mover" status.
-pub const FAST_MOVER_TIMEOUT_MINS: i64 = 3;
+pub const TARGET_MAX_SPEED_KTS: f64 = 250.0;
+pub const TARGET_MIN_SPEED_KTS: f64 = 80.0;
 
-/// A fast mover is an aircraft that has been moving at high speed.
+/// The length of time an interceptor must travel below INTERCEPTOR_SPEED_KTS to
+/// lose interceptor status.
+pub const INTERCEPTOR_TIMEOUT_MINS: i64 = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Class {
+    Interceptor,
+    Target,
+    Other,
+}
+
 #[derive(Debug, Clone)]
-pub struct FastMover {
+pub struct Ac {
     pub hex: String,
-    pub coords: [f64; 2],
+    pub coords: Vec<(DateTime<Utc>, [f64; 2])>,
     pub max_speed: f64,
     pub cur_speed: f64,
     pub cur_alt: i32,
     pub is_on_ground: bool,
     /// The last time the aircraft was seen moving faster than
-    /// FAST_MOVER_SPEED_KTS.
-    pub time_seen_fast: DateTime<Utc>,
+    /// INTERCEPTOR_MIN_SPEED_KTS.
+    pub time_seen_fast: Option<DateTime<Utc>>,
     /// The number of consecutive updates where the aircraft was moving faster
-    /// than FAST_MOVER_SPEED_KTS.
+    /// than INTERCEPTOR_SPEED_KTS.
     pub fast_count: u32,
     pub seen: DateTime<Utc>,
 }
 
-impl FastMover {
+impl Ac {
     pub fn new(now: DateTime<Utc>, aircraft: &Aircraft) -> Result<Self, Error> {
         let (lon, lat) = match (aircraft.lon, aircraft.lat) {
             (Some(lon), Some(lat)) => (lon, lat),
@@ -145,15 +154,20 @@ impl FastMover {
                 )))
             }
         };
-        Ok(FastMover {
+        let is_fast = spd > INTERCEPTOR_MIN_SPEED_KTS;
+        Ok(Ac {
             hex: aircraft.hex.clone(),
-            coords: [lon, lat],
+            coords: vec![(now, [lon, lat])],
             max_speed: spd,
             cur_speed: spd,
             cur_alt: alt,
             is_on_ground: aircraft_is_on_ground(aircraft),
-            time_seen_fast: now - Duration::from_std(seen_pos).unwrap(),
-            fast_count: 1,
+            time_seen_fast: if is_fast {
+                Some(now - Duration::from_std(seen_pos).unwrap())
+            } else {
+                None
+            },
+            fast_count: if is_fast { 1 } else { 0 },
             seen: now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap(),
         })
     }
@@ -161,11 +175,9 @@ impl FastMover {
     pub fn update(&mut self, now: DateTime<Utc>, aircraft: &Aircraft) {
         if let Some(spd) = aircraft.ground_speed_knots {
             self.cur_speed = spd;
-            if spd > self.max_speed {
-                self.max_speed = spd;
-            }
-            if self.cur_speed > FAST_MOVER_SPEED_KTS {
-                self.time_seen_fast = now;
+            self.max_speed = self.max_speed.max(spd);
+            if self.cur_speed > INTERCEPTOR_MIN_SPEED_KTS {
+                self.time_seen_fast = Some(now);
                 self.fast_count += 1;
             }
         }
@@ -177,8 +189,38 @@ impl FastMover {
                 .unwrap_or(0)
         });
         self.is_on_ground = aircraft_is_on_ground(aircraft);
-        self.seen = now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
-        self.coords = [aircraft.lon.unwrap(), aircraft.lat.unwrap()];
+        self.seen = now; // - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
+        self.coords
+            .push((now, [aircraft.lon.unwrap(), aircraft.lat.unwrap()]));
+        // Keep the last 40 positions.
+        if self.coords.len() > 40 {
+            self.coords.remove(0);
+        }
+    }
+
+    pub fn cur_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
+        self.coords.last().unwrap()
+    }
+
+    pub fn oldest_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
+        self.coords.first().unwrap()
+    }
+
+    pub fn is_fast_mover(&self, now: DateTime<Utc>) -> bool {
+        if let Some(time_seen_fast) = self.time_seen_fast {
+            let elapsed = now.signed_duration_since(time_seen_fast);
+            elapsed.num_minutes() < INTERCEPTOR_TIMEOUT_MINS
+                && self.fast_count > 10
+                && !self.is_on_ground
+        } else {
+            false
+        }
+    }
+
+    pub fn is_potential_toi(&self) -> bool {
+        self.cur_speed > TARGET_MIN_SPEED_KTS
+            && self.cur_speed < TARGET_MAX_SPEED_KTS
+            && !self.is_on_ground
     }
 }
 
@@ -190,38 +232,15 @@ pub fn aircraft_is_on_ground(aircraft: &Aircraft) -> bool {
         || (aircraft.geometric_altitude.is_some() && aircraft.geometric_altitude.unwrap() < 500)
 }
 
-/// Represents a potential target (slower-moving) aircraft.
-
-#[derive(Debug, Clone)]
-pub struct Target {
-    pub hex: String,
-    pub cur_speed: f64,
-    pub cur_alt: i32,
-    pub is_on_ground: bool,
-    pub seen: DateTime<Utc>,
-}
-
-impl Target {
-    pub fn new(now: DateTime<Utc>, aircraft: &Aircraft) -> Self {
-        Self {
-            hex: aircraft.hex.clone(),
-            cur_speed: aircraft.ground_speed_knots.unwrap_or(0.0),
-            cur_alt: aircraft.geometric_altitude.unwrap_or(0),
-            is_on_ground: aircraft_is_on_ground(aircraft),
-            seen: now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap(),
-        }
-    }
-}
-
 /// This is the type that we put in the spatial index (r-tree) to find
 /// slow-movers near fast-movers.
 
-pub type TargetLocation = GeomWithData<[f64; 2], Target>;
+pub type TargetLocation = GeomWithData<[f64; 2], Ac>;
 
 #[derive(Debug)]
 pub struct Interception {
-    pub fast_mover: FastMover,
-    pub target: Target,
+    pub interceptor: Ac,
+    pub target: Ac,
     pub time: DateTime<Utc>,
     pub lateral_separation_ft: f64,
     pub vertical_separation_ft: i32,
