@@ -42,7 +42,9 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
             if let Some(ac) = state.aircraft.get_mut(&aircraft.hex) {
                 ac.update(now, aircraft);
             } else {
-                state.aircraft.insert(aircraft.hex.clone(), Ac::new(now, aircraft).unwrap());
+                state
+                    .aircraft
+                    .insert(aircraft.hex.clone(), Ac::new(now, aircraft).unwrap());
             }
             let ac = state.aircraft.get(hex).unwrap();
             match ac.class(now) {
