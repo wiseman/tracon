@@ -163,7 +163,7 @@ fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
     // interception.
     let end_time = now + Duration::minutes(0);
     url.push_str(format!("&startTime={}", start_time.format("%H:%M")).as_str());
-    url.push_str(format!("&endTime={}", end_time.format("%H:%M:%S")).as_str());
+    url.push_str(format!("&endTime={}", end_time.format("%H:%M")).as_str());
     url
 }
 
@@ -182,13 +182,13 @@ fn main() -> Result<(), String> {
         state.interceptions.len()
     );
     for interception in state.interceptions {
-        println!("{} intercepted {} at {} with {:.0} ft lateral separation, {} ft vertical separation {}"
-            , interception.interceptor.hex
-            , interception.target.hex
-            , interception.time
-            , interception.lateral_separation_ft.round()
-            , interception.vertical_separation_ft
-            , url(&interception.interceptor, &interception.target, interception.time)
+        println!("{} {} intercepted {} at {} with {:.0} ft lateral separation, {} ft vertical separation",
+        url(&interception.interceptor, &interception.target, interception.time),
+        interception.interceptor.hex,
+             interception.target.hex,
+             interception.time,
+             interception.lateral_separation_ft.round(),
+             interception.vertical_separation_ft,
         );
     }
     Ok(())
