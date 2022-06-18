@@ -4,7 +4,7 @@ use adsbx_json::v2::Aircraft;
 use anyhow::Result;
 use chrono::{prelude::*, Duration};
 use geo::{point, prelude::*};
-use interceptiondetector::{for_each_adsbx_json, Ac, Interception, TargetLocation};
+use interceptiondetector::{for_each_adsbx_json, Ac, Class, Interception, TargetLocation};
 use rstar::{primitives::GeomWithData, RTree};
 use structopt::StructOpt;
 
@@ -26,14 +26,6 @@ struct State {
     interceptions: Vec<Interception>,
 }
 
-fn add_or_update(all_aircraft: &mut HashMap<String, Ac>, now: DateTime<Utc>, aircraft: &Aircraft) {
-    if let Some(ac) = all_aircraft.get_mut(&aircraft.hex) {
-        ac.update(now, aircraft);
-    } else {
-        all_aircraft.insert(aircraft.hex.clone(), Ac::new(now, aircraft).unwrap());
-    }
-}
-
 fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response) {
     let now = response.now;
     let mut fast_movers = vec![];
@@ -47,19 +39,27 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
         ) {
             let hex = &aircraft.hex;
             // Insert or update the aircraft into the state.
-            add_or_update(&mut state.aircraft, now, aircraft);
+            if let Some(ac) = state.aircraft.get_mut(&aircraft.hex) {
+                ac.update(now, aircraft);
+            } else {
+                state.aircraft.insert(aircraft.hex.clone(), Ac::new(now, aircraft).unwrap());
+            }
             let ac = state.aircraft.get(hex).unwrap();
-            if ac.is_fast_mover(now) {
-                fast_movers.push(ac.clone());
-            } else if ac.is_potential_toi() {
-                potential_tois.push(TargetLocation::new(ac.cur_coords().1, ac.clone()));
+            match ac.class(now) {
+                Class::Interceptor => {
+                    fast_movers.push(ac.clone());
+                }
+                Class::Target => {
+                    potential_tois.push(TargetLocation::new(ac.cur_coords().1, ac.clone()));
+                }
+                _ => {}
             }
         }
     }
     // Now remove stale aircraft.
-    // state
-    //     .aircraft
-    //     .retain(|_, ac| (now - ac.seen) > Duration::minutes(INTERCEPTOR_TIMEOUT_MINS));
+    state
+        .aircraft
+        .retain(|_, ac| (now - ac.seen) < Duration::minutes(10));
 
     if !fast_movers.is_empty() {
         // The r-tree treats coordinates as cartesian, but they're geospatial
@@ -67,8 +67,9 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
         // is 60 nautical miles and use the r-tree index to look up any
         // potential targets kinda-close to each fast-mover, then do a more
         // precise filtering using Haversine distance.  Of course one degree in
-        // the X-axis represents a variable distance depending on where it is on
-        // Earth, but we're not usually looking at planes flying over a pole.
+        // longitude/the X-axis represents a variable distance depending on
+        // where it is on Earth, but we're not usually looking at planes flying
+        // over a pole.
         //
         // An alternative might be to use H3?
         state.num_ac_indexed += &potential_tois.len();
@@ -92,9 +93,6 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
                     && alt_diff < 500
                     && ((now - target.data.seen) < Duration::minutes(1))
                     && started_far_apart(&fast_mover, &target.data)
-                // && target.data.coords.len() > 30
-                // && target.data.coords.len() > 30
-                // && started_far_apart(fast_mover, &target.data)
                 {
                     // Consider this a duplicate interception if the same
                     // fast_mover intercepted the same target within the
@@ -140,15 +138,8 @@ fn started_far_apart(fast_mover: &Ac, target: &Ac) -> bool {
     let mut temp_target_coords = target.coords.clone();
     temp_fast_mover_coords.sort_by_key(|c| (c.0 - comparison_ts).num_seconds().abs());
     temp_target_coords.sort_by_key(|c| (c.0 - comparison_ts).num_seconds().abs());
-    // println!("{} {}", oldest_fm_ts, oldest_t_ts);
-    // println!("{:#?}", temp_fast_mover_coords);
-    // println!("{:#?}", temp_target_coords);
     let dist = point!(x: temp_fast_mover_coords[0].1[0], y: temp_fast_mover_coords[0].1[1])
         .haversine_distance(&point!(x: temp_target_coords[0].1[0], y: temp_target_coords[0].1[1]));
-    // eprintln!(
-    //     "\n\npast dist {} {} {:?} {:?}\n\n",
-    //     dist, comparison_ts, temp_fast_mover_coords[0], temp_target_coords[0]
-    // );
     dist > 10.0 * 1609.34
 }
 

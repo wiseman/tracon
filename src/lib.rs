@@ -85,20 +85,28 @@ pub fn alt_number(alt: AltitudeOrGround) -> i32 {
 /// The speed threshold to be considered an interceptor.
 pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 350.0;
 
+/// The maximum speed of a potential target.
 pub const TARGET_MAX_SPEED_KTS: f64 = 250.0;
+
+/// The minimum speed of a potential target.
 pub const TARGET_MIN_SPEED_KTS: f64 = 80.0;
 
 /// The length of time an interceptor must travel below INTERCEPTOR_SPEED_KTS to
 /// lose interceptor status.
 pub const INTERCEPTOR_TIMEOUT_MINS: i64 = 3;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The different classifications of aircraft.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Class {
+    /// Possible interceptor.
     Interceptor,
+    /// Possible target.
     Target,
+    /// Neither interceptor nor target.
     Other,
 }
 
+/// State we keep track of for each aircraft.
 #[derive(Debug, Clone)]
 pub struct Ac {
     pub hex: String,
@@ -110,9 +118,10 @@ pub struct Ac {
     /// The last time the aircraft was seen moving faster than
     /// INTERCEPTOR_MIN_SPEED_KTS.
     pub time_seen_fast: Option<DateTime<Utc>>,
-    /// The number of consecutive updates where the aircraft was moving faster
-    /// than INTERCEPTOR_SPEED_KTS.
+    /// The number of updates where the aircraft was moving faster than
+    /// INTERCEPTOR_SPEED_KTS.
     pub fast_count: u32,
+    /// When was the aircraft last seen.
     pub seen: DateTime<Utc>,
 }
 
@@ -172,6 +181,7 @@ impl Ac {
         })
     }
 
+    // Updates aircraft state based on latest API response for that aircraft.
     pub fn update(&mut self, now: DateTime<Utc>, aircraft: &Aircraft) {
         if let Some(spd) = aircraft.ground_speed_knots {
             self.cur_speed = spd;
@@ -189,38 +199,43 @@ impl Ac {
                 .unwrap_or(0)
         });
         self.is_on_ground = aircraft_is_on_ground(aircraft);
-        self.seen = now; // - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
+        self.seen = now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
         self.coords
             .push((now, [aircraft.lon.unwrap(), aircraft.lat.unwrap()]));
-        // Keep the last 40 positions.
+        // Keep the last 40 positions (about 10 minutes worth).
         if self.coords.len() > 40 {
             self.coords.remove(0);
         }
     }
 
+    /// Returns the aircraft's most recent coordinates.
     pub fn cur_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
         self.coords.last().unwrap()
     }
 
+    /// Returns the aircraft's oldest coordinates (usually from about 10 minutes
+    /// ago).
     pub fn oldest_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
         self.coords.first().unwrap()
     }
 
-    pub fn is_fast_mover(&self, now: DateTime<Utc>) -> bool {
+    pub fn class(&self, now: DateTime<Utc>) -> Class {
         if let Some(time_seen_fast) = self.time_seen_fast {
             let elapsed = now.signed_duration_since(time_seen_fast);
-            elapsed.num_minutes() < INTERCEPTOR_TIMEOUT_MINS
+            if elapsed.num_minutes() < INTERCEPTOR_TIMEOUT_MINS
                 && self.fast_count > 10
                 && !self.is_on_ground
-        } else {
-            false
+            {
+                return Class::Interceptor;
+            }
         }
-    }
-
-    pub fn is_potential_toi(&self) -> bool {
-        self.cur_speed > TARGET_MIN_SPEED_KTS
+        if self.cur_speed > TARGET_MIN_SPEED_KTS
             && self.cur_speed < TARGET_MAX_SPEED_KTS
             && !self.is_on_ground
+        {
+            return Class::Target;
+        }
+        Class::Other
     }
 }
 
