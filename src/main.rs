@@ -161,7 +161,7 @@ fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
     // ADSBX startTime and endTime params only have 1 minute resolution, so
     // let's add 1 minute to make sure we actually cover the time of
     // interception.
-    let end_time = now + Duration::minutes(0);
+    let end_time = now + Duration::minutes(1);
     url.push_str(format!("&startTime={}", start_time.format("%H:%M")).as_str());
     url.push_str(format!("&endTime={}", end_time.format("%H:%M")).as_str());
     url
