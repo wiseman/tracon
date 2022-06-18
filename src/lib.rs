@@ -83,10 +83,10 @@ pub fn alt_number(alt: AltitudeOrGround) -> i32 {
 }
 
 /// The speed threshold to be considered an interceptor.
-pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 350.0;
+pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 400.0;
 
 /// The maximum speed of a potential target.
-pub const TARGET_MAX_SPEED_KTS: f64 = 250.0;
+pub const TARGET_MAX_SPEED_KTS: f64 = 350.0;
 
 /// The minimum speed of a potential target.
 pub const TARGET_MIN_SPEED_KTS: f64 = 80.0;

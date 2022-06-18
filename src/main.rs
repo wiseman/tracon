@@ -1,6 +1,5 @@
 use std::{cmp::max, collections::HashMap};
 
-use adsbx_json::v2::Aircraft;
 use anyhow::Result;
 use chrono::{prelude::*, Duration};
 use geo::{point, prelude::*};
@@ -91,7 +90,7 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
                 let dist = target_pt.haversine_distance(&fast_mover_pt);
                 let alt_diff = (target.data.cur_alt - fast_mover.cur_alt).abs();
                 if dist < 500.0
-                    && (target.data.cur_speed - fast_mover.cur_speed).abs() < 250.0
+                    && (target.data.cur_speed - fast_mover.cur_speed).abs() < 150.0
                     && alt_diff < 500
                     && ((now - target.data.seen) < Duration::minutes(1))
                     && started_far_apart(&fast_mover, &target.data)
