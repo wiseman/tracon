@@ -41,13 +41,14 @@ pub fn for_each_adsbx_json<OP>(
     mut op: OP,
 ) -> Result<(), Error>
 where
-    OP: FnMut(adsbx_json::v2::Response) + Sync + Send,
+    OP: FnMut(adsbx_json::v2::Response, &ProgressBar) + Sync + Send,
 {
     let bar = ProgressBar::new(paths.len().try_into().unwrap());
     bar.set_style(
-        ProgressStyle::default_bar().template("{wide_bar} {pos}/{len} {eta} {elapsed_precise}"),
+        ProgressStyle::default_bar()
+            .template("{wide_bar} {pos}/{len} {eta} {elapsed_precise} {msg}"),
     );
-    pariter::scope(|scope| {
+    let r = pariter::scope(|scope| {
         paths
             .iter()
             .parallel_map_scoped(scope, |path| match load_adsbx_json_file(path) {
@@ -56,7 +57,7 @@ where
             })
             .for_each(|result| {
                 match result {
-                    Ok(response) => op(response),
+                    Ok(response) => op(response, &bar),
                     Err((path, err)) => {
                         eprintln!("Error reading file {}: {}\n", path, err);
                         if !skip_json_errors {
@@ -70,7 +71,9 @@ where
                 bar.inc(1);
             });
     })
-    .map_err(|e| Error::ParallelMapError(format!("{:?}", e)))
+    .map_err(|e| Error::ParallelMapError(format!("{:?}", e)));
+    bar.finish();
+    r
 }
 
 /// Turns an altitude into a number (where ground is 0).

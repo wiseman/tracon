@@ -3,6 +3,7 @@ use std::{cmp::max, collections::HashMap};
 use anyhow::Result;
 use chrono::{prelude::*, Duration};
 use geo::{point, prelude::*};
+use indicatif::ProgressBar;
 use interceptiondetector::{for_each_adsbx_json, Ac, Class, Interception, TargetLocation};
 use rstar::{primitives::GeomWithData, RTree};
 use structopt::StructOpt;
@@ -25,8 +26,15 @@ struct State {
     interceptions: Vec<Interception>,
 }
 
-fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response) {
+fn process_adsbx_response(
+    state: &mut State,
+    response: adsbx_json::v2::Response,
+    bar: &ProgressBar,
+) {
     let now = response.now;
+
+    // First classify each aircraft as a fast mover/interceptor, a slow
+    // mover/target, or neither (which we don't care about).
     let mut fast_movers = vec![];
     let mut potential_tois: Vec<GeomWithData<[f64; 2], Ac>> = vec![];
     for aircraft in &response.aircraft {
@@ -78,7 +86,7 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
         const MAX_DIST_NM: f64 = 0.5;
         let max_dist_deg_2 = (MAX_DIST_NM / 60.0).powi(2);
 
-        // Now look for non-fast movers that are close to known fast movers.
+        // For each fast mover, find any potential targets that are close enough.
         for fast_mover in fast_movers {
             let fast_mover_coords = fast_mover.cur_coords().1;
             let targets = spatial_index.locate_within_distance(fast_mover_coords, max_dist_deg_2);
@@ -122,6 +130,10 @@ fn process_adsbx_response(state: &mut State, response: adsbx_json::v2::Response)
             }
         }
     }
+    bar.set_message(format!(
+        "[ {} interceptions found ]",
+        state.interceptions.len()
+    ));
 }
 
 // Function that checks whether the two aircraft were more than 10 miles apart
@@ -171,8 +183,8 @@ fn main() -> Result<(), String> {
     let args = CliArgs::from_args();
     eprintln!("Processing {} files", args.paths.len());
     let mut state = State::default();
-    for_each_adsbx_json(&args.paths, args.skip_json_errors, |response| {
-        process_adsbx_response(&mut state, response)
+    for_each_adsbx_json(&args.paths, args.skip_json_errors, |response, bar| {
+        process_adsbx_response(&mut state, response, bar)
     })
     .unwrap();
     eprintln!(
