@@ -35,13 +35,13 @@ pub fn load_adsbx_json_file(path: &str) -> Result<adsbx_json::v2::Response, Erro
 // Decompresses and parses files in parallel, but calls the callback function
 // serially.
 
-pub fn for_each_adsbx_json<OP>(
+pub fn for_each_adsbx_json<F>(
     paths: &[String],
     skip_json_errors: bool,
-    mut op: OP,
+    mut f: F,
 ) -> Result<(), Error>
 where
-    OP: FnMut(adsbx_json::v2::Response, &ProgressBar) + Sync + Send,
+    F: FnMut(adsbx_json::v2::Response, &ProgressBar) -> Result<(), Error>,
 {
     let bar = ProgressBar::new(paths.len().try_into().unwrap());
     bar.set_style(
@@ -55,25 +55,73 @@ where
                 Ok(response) => Ok(response),
                 Err(err) => Err((path, err)),
             })
-            .for_each(|result| {
-                match result {
-                    Ok(response) => op(response, &bar),
+            .try_for_each(|result| {
+                let r = match result {
+                    Ok(response) => f(response, &bar),
                     Err((path, err)) => {
                         eprintln!("Error reading file {}: {}\n", path, err);
                         if !skip_json_errors {
-                            // It's not ideal to just exit here, but
-                            // pariter::scope doesn't seem to make it easy to
-                            // propagate an error up.
-                            std::process::exit(1);
+                            Err(err)
+                        } else {
+                            Ok(())
                         }
                     }
-                }
+                };
                 bar.inc(1);
-            });
+                r
+            })
     })
     .map_err(|e| Error::ParallelMapError(format!("{:?}", e)));
     bar.finish();
-    r
+    match r {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn try_fold_adsbx_json<B, F, R>(
+    paths: &[String],
+    skip_json_errors: bool,
+    init: B,
+    mut f: F,
+) -> Result<B, Error>
+where
+    F: FnMut(B, adsbx_json::v2::Response, &ProgressBar) -> Result<B, Error>,
+{
+    let bar = ProgressBar::new(paths.len().try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{wide_bar} {pos}/{len} {eta} {elapsed_precise} {msg}"),
+    );
+    let r = pariter::scope(|scope| {
+        paths
+        .iter()
+        .parallel_map_scoped(scope, |path| match load_adsbx_json_file(path) {
+            Ok(response) => Ok(response),
+            Err(err) => Err((path, err)),
+        })
+        .try_fold(init, |init, result| {
+            let r = match result {
+                Ok(response) => f(init, response, &bar),
+                Err((path, err)) => {
+                    eprintln!("Error reading file {}: {}\n", path, err);
+                    if !skip_json_errors {
+                        Err(Error::JsonLoadError("BLAH".to_string()))
+                    } else {
+                        Ok(init)
+                    }
+                }
+            };
+            bar.inc(1);
+            r
+        })
+    })
+    .map_err(|e| Error::ParallelMapError(format!("{:?}", e)));
+    bar.finish();
+    match r {
+        Ok(b) => b,
+        Err(e) => Err(e),
+    }
 }
 
 /// Turns an altitude into a number (where ground is 0).

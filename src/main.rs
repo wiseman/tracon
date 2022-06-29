@@ -4,7 +4,7 @@ use anyhow::Result;
 use chrono::{prelude::*, Duration};
 use geo::{point, prelude::*};
 use indicatif::ProgressBar;
-use interceptiondetector::{for_each_adsbx_json, Ac, Class, Interception, TargetLocation};
+use interceptiondetector::{for_each_adsbx_json, Ac, Class, Interception, TargetLocation, error::Error};
 use rstar::{primitives::GeomWithData, RTree};
 use structopt::StructOpt;
 
@@ -30,7 +30,7 @@ fn process_adsbx_response(
     state: &mut State,
     response: adsbx_json::v2::Response,
     bar: &ProgressBar,
-) {
+) -> Result<(), Error> {
     let now = response.now;
 
     // First classify each aircraft as a fast mover/interceptor, a slow
@@ -70,70 +70,73 @@ fn process_adsbx_response(
         .aircraft
         .retain(|_, ac| (now - ac.seen) < Duration::minutes(10));
 
-    if !fast_movers.is_empty() {
-        // The r-tree treats coordinates as cartesian, but they're geospatial
-        // (spherical). So we use the fact that one degree (of latitude, anyway)
-        // is 60 nautical miles and use the r-tree index to look up any
-        // potential targets kinda-close to each fast-mover, then do a more
-        // precise filtering using Haversine distance.  Of course one degree in
-        // longitude/the X-axis represents a variable distance depending on
-        // where it is on Earth, but we're not usually looking at planes flying
-        // over a pole.
-        //
-        // An alternative might be to use H3?
-        state.num_ac_indexed += &potential_tois.len();
-        let spatial_index = RTree::bulk_load(potential_tois);
-        const MAX_DIST_NM: f64 = 0.5;
-        let max_dist_deg_2 = (MAX_DIST_NM / 60.0).powi(2);
+    if fast_movers.is_empty() {
+        return Ok(());
+    }
+    // The r-tree treats coordinates as cartesian, but they're geospatial
+    // (spherical). So we use the fact that one degree (of latitude, anyway)
+    // is 60 nautical miles and use the r-tree index to look up any
+    // potential targets kinda-close to each fast-mover, then do a more
+    // precise filtering using Haversine distance.  Of course one degree in
+    // longitude/the X-axis represents a variable distance depending on
+    // where it is on Earth, but we're not usually looking at planes flying
+    // over a pole.
+    //
+    // An alternative might be to use H3?
+    state.num_ac_indexed += &potential_tois.len();
+    let spatial_index = RTree::bulk_load(potential_tois);
+    const MAX_DIST_NM: f64 = 0.5;
+    let max_dist_deg_2 = (MAX_DIST_NM / 60.0).powi(2);
 
-        // For each fast mover, find any potential targets that are close enough.
-        for fast_mover in fast_movers {
-            let fast_mover_coords = fast_mover.cur_coords().1;
-            let targets = spatial_index.locate_within_distance(fast_mover_coords, max_dist_deg_2);
-            for target in targets {
-                let target_coords = target.data.cur_coords().1;
-                state.num_ac_processed += 1;
-                let target_pt = point!(x: target_coords[0], y: target_coords[1]);
-                let fast_mover_pt = point!(x: fast_mover_coords[0], y: fast_mover_coords[1]);
-                let dist = target_pt.haversine_distance(&fast_mover_pt);
-                let alt_diff = (target.data.cur_alt - fast_mover.cur_alt).abs();
-                if dist < 500.0
-                    && (target.data.cur_speed - fast_mover.cur_speed).abs() < 150.0
-                    && alt_diff < 500
-                    && ((now - target.data.seen) < Duration::minutes(1))
-                    && started_far_apart(&fast_mover, &target.data)
-                {
-                    // Consider this a duplicate interception if the same
-                    // fast_mover intercepted the same target within the
-                    // past 10 minutes.
-                    if state.interceptions.iter().any(|i| {
-                        i.interceptor.hex == fast_mover.hex
-                            && i.target.hex == target.data.hex
-                            && i.time > now - Duration::minutes(10)
-                    }) {
-                        continue;
-                    }
-
-                    let interception = Interception {
-                        interceptor: fast_mover.clone(),
-                        target: target.data.clone(),
-                        lateral_separation_ft: dist * 3.28084,
-                        vertical_separation_ft: alt_diff,
-                        time: now,
-                    };
-                    state.interceptions.push(interception);
-                    eprintln!(
-                        "\n{} might have intercepted {} at {}",
-                        fast_mover.hex, target.data.hex, now,
-                    );
+    // For each fast mover, find any potential targets that are close enough.
+    for fast_mover in fast_movers {
+        let fast_mover_coords = fast_mover.cur_coords().1;
+        let targets = spatial_index.locate_within_distance(fast_mover_coords, max_dist_deg_2);
+        for target in targets {
+            let target_coords = target.data.cur_coords().1;
+            state.num_ac_processed += 1;
+            let target_pt = point!(x: target_coords[0], y: target_coords[1]);
+            let fast_mover_pt = point!(x: fast_mover_coords[0], y: fast_mover_coords[1]);
+            let dist = target_pt.haversine_distance(&fast_mover_pt);
+            let alt_diff = (target.data.cur_alt - fast_mover.cur_alt).abs();
+            if dist < 500.0
+                && (target.data.cur_speed - fast_mover.cur_speed).abs() < 150.0
+                && alt_diff < 500
+                && ((now - target.data.seen) < Duration::minutes(1))
+                && started_far_apart(&fast_mover, &target.data)
+            {
+                // Consider this a duplicate interception if the same
+                // fast_mover intercepted the same target within the
+                // past 10 minutes.
+                if state.interceptions.iter().any(|i| {
+                    i.interceptor.hex == fast_mover.hex
+                        && i.target.hex == target.data.hex
+                        && i.time > now - Duration::minutes(10)
+                }) {
+                    continue;
                 }
+
+                let interception = Interception {
+                    interceptor: fast_mover.clone(),
+                    target: target.data.clone(),
+                    lateral_separation_ft: dist * 3.28084,
+                    vertical_separation_ft: alt_diff,
+                    time: now,
+                };
+                state.interceptions.push(interception);
+                eprintln!(
+                    "\n{} might have intercepted {} at {}",
+                    fast_mover.hex, target.data.hex, now,
+                );
             }
         }
     }
+
     bar.set_message(format!(
         "[ {} interceptions found ]",
         state.interceptions.len()
     ));
+    Ok(())
 }
 
 // Function that checks whether the two aircraft were more than 10 miles apart
@@ -170,12 +173,9 @@ fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
     url.push_str(format!("&lat={}&lon={}", fast_mover_coords[1], fast_mover_coords[0]).as_str());
     url.push_str("&zoom=11");
     let start_time = now - Duration::minutes(5);
-    // ADSBX startTime and endTime params only have 1 minute resolution, so
-    // let's add 1 minute to make sure we actually cover the time of
-    // interception.
     let end_time = now + Duration::minutes(1);
     url.push_str(format!("&startTime={}", start_time.format("%H:%M")).as_str());
-    url.push_str(format!("&endTime={}", end_time.format("%H:%M")).as_str());
+    url.push_str(format!("&endTime={}", end_time.format("%H:%M:%S")).as_str());
     url
 }
 
