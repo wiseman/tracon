@@ -1,32 +1,196 @@
-use std::{cmp::max, collections::HashMap};
+use std::cmp::max;
 
-use anyhow::Result;
+use adsbx_json::v2::Aircraft;
 use chrono::{prelude::*, Duration};
-use geo::{point, prelude::*};
+use geo::{point, HaversineDistance};
 use indicatif::ProgressBar;
-use interceptiondetector::{for_each_adsbx_json, Ac, Class, Interception, TargetLocation, error::Error};
 use rstar::{primitives::GeomWithData, RTree};
-use structopt::StructOpt;
+use std::collections::HashMap;
 
-#[derive(StructOpt, Debug)]
-struct CliArgs {
-    #[structopt(help = "Input files")]
-    pub paths: Vec<String>,
-    #[structopt(long, help = "Skip JSON decoding errors")]
-    pub skip_json_errors: bool,
+use crate::{aircraft_is_on_ground, alt_number, error::Error};
+
+/// The speed threshold to be considered an interceptor.
+pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 400.0;
+
+/// The maximum speed of a potential target.
+pub const TARGET_MAX_SPEED_KTS: f64 = 350.0;
+
+/// The minimum speed of a potential target.
+pub const TARGET_MIN_SPEED_KTS: f64 = 80.0;
+
+/// The length of time an interceptor must travel below INTERCEPTOR_SPEED_KTS to
+/// lose interceptor status.
+pub const INTERCEPTOR_TIMEOUT_MINS: i64 = 3;
+
+/// The different classifications of aircraft.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Class {
+    /// Possible interceptor.
+    Interceptor,
+    /// Possible target.
+    Target,
+    /// Neither interceptor nor target.
+    Other,
+}
+
+/// State we keep track of for each aircraft.
+#[derive(Debug, Clone)]
+pub struct Ac {
+    pub hex: String,
+    pub coords: Vec<(DateTime<Utc>, [f64; 2])>,
+    pub max_speed: f64,
+    pub cur_speed: f64,
+    pub cur_alt: i32,
+    pub is_on_ground: bool,
+    /// The last time the aircraft was seen moving faster than
+    /// INTERCEPTOR_MIN_SPEED_KTS.
+    pub time_seen_fast: Option<DateTime<Utc>>,
+    /// The number of updates where the aircraft was moving faster than
+    /// INTERCEPTOR_SPEED_KTS.
+    pub fast_count: u32,
+    /// When was the aircraft last seen.
+    pub seen: DateTime<Utc>,
+}
+
+impl Ac {
+    pub fn new(now: DateTime<Utc>, aircraft: &Aircraft) -> Result<Self, Error> {
+        let (lon, lat) = match (aircraft.lon, aircraft.lat) {
+            (Some(lon), Some(lat)) => (lon, lat),
+            _ => {
+                return Err(Error::AircraftMissingData(format!(
+                    "Aircraft {} is missing position data",
+                    aircraft.hex
+                )))
+            }
+        };
+        let spd = match aircraft.ground_speed_knots {
+            Some(spd) => spd,
+            _ => {
+                return Err(Error::AircraftMissingData(format!(
+                    "Aircraft {} is missing ground speed data",
+                    aircraft.hex
+                )))
+            }
+        };
+        let alt = match aircraft.geometric_altitude {
+            Some(alt) => alt,
+            _ => {
+                return Err(Error::AircraftMissingData(format!(
+                    "Aircraft {} is missing geometric altitude",
+                    aircraft.hex
+                )))
+            }
+        };
+        let seen_pos = match aircraft.seen_pos {
+            Some(seen_pos) => seen_pos,
+            _ => {
+                return Err(Error::AircraftMissingData(format!(
+                    "Aircraft {} is missing seen_pos",
+                    aircraft.hex
+                )))
+            }
+        };
+        let is_fast = spd > INTERCEPTOR_MIN_SPEED_KTS;
+        Ok(Ac {
+            hex: aircraft.hex.clone(),
+            coords: vec![(now, [lon, lat])],
+            max_speed: spd,
+            cur_speed: spd,
+            cur_alt: alt,
+            is_on_ground: aircraft_is_on_ground(aircraft),
+            time_seen_fast: if is_fast {
+                Some(now - Duration::from_std(seen_pos).unwrap())
+            } else {
+                None
+            },
+            fast_count: if is_fast { 1 } else { 0 },
+            seen: now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap(),
+        })
+    }
+
+    // Updates aircraft state based on latest API response for that aircraft.
+    pub fn update(&mut self, now: DateTime<Utc>, aircraft: &Aircraft) {
+        if let Some(spd) = aircraft.ground_speed_knots {
+            self.cur_speed = spd;
+            self.max_speed = self.max_speed.max(spd);
+            if self.cur_speed > INTERCEPTOR_MIN_SPEED_KTS {
+                self.time_seen_fast = Some(now);
+                self.fast_count += 1;
+            }
+        }
+        self.cur_alt = aircraft.geometric_altitude.unwrap_or_else(|| {
+            aircraft
+                .barometric_altitude
+                .clone()
+                .map(alt_number)
+                .unwrap_or(0)
+        });
+        self.is_on_ground = aircraft_is_on_ground(aircraft);
+        self.seen = now - Duration::from_std(aircraft.seen_pos.unwrap()).unwrap();
+        self.coords
+            .push((now, [aircraft.lon.unwrap(), aircraft.lat.unwrap()]));
+        // Keep the last 40 positions (about 10 minutes worth).
+        if self.coords.len() > 40 {
+            self.coords.remove(0);
+        }
+    }
+
+    /// Returns the aircraft's most recent coordinates.
+    pub fn cur_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
+        self.coords.last().unwrap()
+    }
+
+    /// Returns the aircraft's oldest coordinates (usually from about 10 minutes
+    /// ago).
+    pub fn oldest_coords(&self) -> &(DateTime<Utc>, [f64; 2]) {
+        self.coords.first().unwrap()
+    }
+
+    pub fn class(&self, now: DateTime<Utc>) -> Class {
+        if let Some(time_seen_fast) = self.time_seen_fast {
+            let elapsed = now.signed_duration_since(time_seen_fast);
+            if elapsed.num_minutes() < INTERCEPTOR_TIMEOUT_MINS
+                && self.fast_count > 10
+                && !self.is_on_ground
+            {
+                return Class::Interceptor;
+            }
+        }
+        if self.cur_speed > TARGET_MIN_SPEED_KTS
+            && self.cur_speed < TARGET_MAX_SPEED_KTS
+            && !self.is_on_ground
+        {
+            return Class::Target;
+        }
+        Class::Other
+    }
+}
+
+/// This is the type that we put in the spatial index (r-tree) to find
+/// slow-movers near fast-movers.
+
+pub type TargetLocation = GeomWithData<[f64; 2], Ac>;
+
+#[derive(Debug)]
+pub struct Interception {
+    pub interceptor: Ac,
+    pub target: Ac,
+    pub time: DateTime<Utc>,
+    pub lateral_separation_ft: f64,
+    pub vertical_separation_ft: i32,
 }
 
 /// This is the state that is kept across ADS-B Exchange API responses.
 
 #[derive(Debug, Default)]
-struct State {
-    aircraft: HashMap<String, Ac>,
-    num_ac_indexed: usize,
-    num_ac_processed: usize,
-    interceptions: Vec<Interception>,
+pub struct State {
+    pub aircraft: HashMap<String, Ac>,
+    pub num_ac_indexed: usize,
+    pub num_ac_processed: usize,
+    pub interceptions: Vec<Interception>,
 }
 
-fn process_adsbx_response(
+pub fn process_adsbx_response(
     state: &mut State,
     response: adsbx_json::v2::Response,
     bar: &ProgressBar,
@@ -161,7 +325,7 @@ fn started_far_apart(fast_mover: &Ac, target: &Ac) -> bool {
 
 /// Generates an ADS-B Exchange URL for an interception.
 
-fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
+pub fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
     let mut url = String::new();
     url.push_str("https://globe.adsbexchange.com/?icao=");
     url.push_str(&fast_mover.hex);
@@ -177,31 +341,4 @@ fn url(fast_mover: &Ac, target: &Ac, now: DateTime<Utc>) -> String {
     url.push_str(format!("&startTime={}", start_time.format("%H:%M")).as_str());
     url.push_str(format!("&endTime={}", end_time.format("%H:%M:%S")).as_str());
     url
-}
-
-fn main() -> Result<(), String> {
-    let args = CliArgs::from_args();
-    eprintln!("Processing {} files", args.paths.len());
-    let mut state = State::default();
-    for_each_adsbx_json(&args.paths, args.skip_json_errors, |response, bar| {
-        process_adsbx_response(&mut state, response, bar)
-    })
-    .unwrap();
-    eprintln!(
-        "Indexed {} aircraft, processed {} aircraft, found {} interceptions",
-        state.num_ac_indexed,
-        state.num_ac_processed,
-        state.interceptions.len()
-    );
-    for interception in state.interceptions {
-        println!("{} {} intercepted {} at {} with {:.0} ft lateral separation, {} ft vertical separation",
-        url(&interception.interceptor, &interception.target, interception.time),
-        interception.interceptor.hex,
-             interception.target.hex,
-             interception.time,
-             interception.lateral_separation_ft.round(),
-             interception.vertical_separation_ft,
-        );
-    }
-    Ok(())
 }
