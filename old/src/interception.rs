@@ -9,6 +9,17 @@ use std::collections::HashMap;
 
 use crate::{aircraft_is_on_ground, alt_number, error::Error};
 
+pub struct InterceptionConfig {
+    pub interceptor_min_spd_kts: u32,
+    pub target_max_spd_kts: u32,
+    pub target_min_spd_kts: u32,
+    pub interceptor_timeout: Duration,
+}
+
+pub struct InterceptionDetector {
+    pub config: InterceptionConfig,
+}
+
 /// The speed threshold to be considered an interceptor.
 pub const INTERCEPTOR_MIN_SPEED_KTS: f64 = 400.0;
 
