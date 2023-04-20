@@ -1,0 +1,29 @@
+[package]
+name = "dump"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+adsbx_json = "12.0.0"
+anyhow = "1.0.53"
+chrono = "0.4.19"
+bzip2 = "0.4.3"
+env_logger = "0.10.0"
+geo = "0.23.1"
+geo-types = "0.7.8"
+geojson = "0.24.0"
+h3ron = "0.16.0"
+indicatif = { version = "0.16.1", features = ["rayon"] }
+itertools = "0.10"
+log = "0.4.17"
+lru = "0.9"
+pariter = "0.5"
+rayon = "1.5.1"
+regex = "1.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.79"
+shapefile = {version = "0.3.0", features = ["geo-types"]}
+structopt = "0.3.21"
+aircraft_icao_range = { path = "../../aircraft_icao_range" }

@@ -1,0 +1,1268 @@
+[
+  {
+    "start": "0x004000",
+    "end": "0x0043FF",
+    "country": "Zimbabwe",
+    "priority": 1
+  },
+  {
+    "start": "0x006000",
+    "end": "0x006FFF",
+    "country": "Mozambique",
+    "priority": 2
+  },
+  {
+    "start": "0x008000",
+    "end": "0x00FFFF",
+    "country": "South Africa",
+    "priority": 3
+  },
+  {
+    "start": "0x010000",
+    "end": "0x017FFF",
+    "country": "Egypt",
+    "priority": 4
+  },
+  {
+    "start": "0x018000",
+    "end": "0x01FFFF",
+    "country": "Libyan Arab Jamahiriya",
+    "priority": 5
+  },
+  {
+    "start": "0x020000",
+    "end": "0x027FFF",
+    "country": "Morocco",
+    "priority": 6
+  },
+  {
+    "start": "0x028000",
+    "end": "0x02FFFF",
+    "country": "Tunisia",
+    "priority": 7
+  },
+  {
+    "start": "0x030000",
+    "end": "0x0303FF",
+    "country": "Botswana",
+    "priority": 8
+  },
+  {
+    "start": "0x032000",
+    "end": "0x032FFF",
+    "country": "Burundi",
+    "priority": 9
+  },
+  {
+    "start": "0x034000",
+    "end": "0x034FFF",
+    "country": "Cameroon",
+    "priority": 10
+  },
+  {
+    "start": "0x035000",
+    "end": "0x0353FF",
+    "country": "Comoros",
+    "priority": 11
+  },
+  {
+    "start": "0x036000",
+    "end": "0x036FFF",
+    "country": "Congo",
+    "priority": 12
+  },
+  {
+    "start": "0x038000",
+    "end": "0x038FFF",
+    "country": "Cote d'Ivoire",
+    "priority": 13
+  },
+  {
+    "start": "0x03E000",
+    "end": "0x03EFFF",
+    "country": "Gabon",
+    "priority": 14
+  },
+  {
+    "start": "0x040000",
+    "end": "0x040FFF",
+    "country": "Ethiopia",
+    "priority": 15
+  },
+  {
+    "start": "0x042000",
+    "end": "0x042FFF",
+    "country": "Equatorial Guinea",
+    "priority": 16
+  },
+  {
+    "start": "0x044000",
+    "end": "0x044FFF",
+    "country": "Ghana",
+    "priority": 17
+  },
+  {
+    "start": "0x046000",
+    "end": "0x046FFF",
+    "country": "Guinea",
+    "priority": 18
+  },
+  {
+    "start": "0x048000",
+    "end": "0x0483FF",
+    "country": "Guinea-Bissau",
+    "priority": 19
+  },
+  {
+    "start": "0x04A000",
+    "end": "0x04A3FF",
+    "country": "Lesotho",
+    "priority": 20
+  },
+  {
+    "start": "0x04C000",
+    "end": "0x04CFFF",
+    "country": "Kenya",
+    "priority": 21
+  },
+  {
+    "start": "0x050000",
+    "end": "0x050FFF",
+    "country": "Liberia",
+    "priority": 22
+  },
+  {
+    "start": "0x054000",
+    "end": "0x054FFF",
+    "country": "Madagascar",
+    "priority": 23
+  },
+  {
+    "start": "0x058000",
+    "end": "0x058FFF",
+    "country": "Malawi",
+    "priority": 24
+  },
+  {
+    "start": "0x05A000",
+    "end": "0x05A3FF",
+    "country": "Maldives",
+    "priority": 25
+  },
+  {
+    "start": "0x05C000",
+    "end": "0x05CFFF",
+    "country": "Mali",
+    "priority": 26
+  },
+  {
+    "start": "0x05E000",
+    "end": "0x05E3FF",
+    "country": "Mauritania",
+    "priority": 27
+  },
+  {
+    "start": "0x060000",
+    "end": "0x0603FF",
+    "country": "Mauritius",
+    "priority": 28
+  },
+  {
+    "start": "0x062000",
+    "end": "0x062FFF",
+    "country": "Niger",
+    "priority": 29
+  },
+  {
+    "start": "0x064000",
+    "end": "0x064FFF",
+    "country": "Nigeria",
+    "priority": 30
+  },
+  {
+    "start": "0x068000",
+    "end": "0x068FFF",
+    "country": "Uganda",
+    "priority": 31
+  },
+  {
+    "start": "0x06A000",
+    "end": "0x06A3FF",
+    "country": "Qatar",
+    "priority": 32
+  },
+  {
+    "start": "0x06C000",
+    "end": "0x06CFFF",
+    "country": "Central African Republic",
+    "priority": 33
+  },
+  {
+    "start": "0x06E000",
+    "end": "0x06EFFF",
+    "country": "Rwanda",
+    "priority": 34
+  },
+  {
+    "start": "0x070000",
+    "end": "0x070FFF",
+    "country": "Senegal",
+    "priority": 35
+  },
+  {
+    "start": "0x074000",
+    "end": "0x0743FF",
+    "country": "Seychelles",
+    "priority": 36
+  },
+  {
+    "start": "0x076000",
+    "end": "0x0763FF",
+    "country": "Sierra Leone",
+    "priority": 37
+  },
+  {
+    "start": "0x078000",
+    "end": "0x078FFF",
+    "country": "Somalia",
+    "priority": 38
+  },
+  {
+    "start": "0x07A000",
+    "end": "0x07A3FF",
+    "country": "Swaziland",
+    "priority": 39
+  },
+  {
+    "start": "0x07C000",
+    "end": "0x07CFFF",
+    "country": "Sudan",
+    "priority": 40
+  },
+  {
+    "start": "0x080000",
+    "end": "0x080FFF",
+    "country": "Tanzania",
+    "priority": 41
+  },
+  {
+    "start": "0x084000",
+    "end": "0x084FFF",
+    "country": "Chad",
+    "priority": 42
+  },
+  {
+    "start": "0x088000",
+    "end": "0x088FFF",
+    "country": "Togo",
+    "priority": 43
+  },
+  {
+    "start": "0x08A000",
+    "end": "0x08AFFF",
+    "country": "Zambia",
+    "priority": 44
+  },
+  {
+    "start": "0x08C000",
+    "end": "0x08CFFF",
+    "country": "DR Congo",
+    "priority": 45
+  },
+  {
+    "start": "0x090000",
+    "end": "0x090FFF",
+    "country": "Angola",
+    "priority": 46
+  },
+  {
+    "start": "0x094000",
+    "end": "0x0943FF",
+    "country": "Benin",
+    "priority": 47
+  },
+  {
+    "start": "0x096000",
+    "end": "0x0963FF",
+    "country": "Cape Verde",
+    "priority": 48
+  },
+  {
+    "start": "0x098000",
+    "end": "0x0983FF",
+    "country": "Djibouti",
+    "priority": 49
+  },
+  {
+    "start": "0x09A000",
+    "end": "0x09AFFF",
+    "country": "Gambia",
+    "priority": 50
+  },
+  {
+    "start": "0x09C000",
+    "end": "0x09CFFF",
+    "country": "Burkina Faso",
+    "priority": 51
+  },
+  {
+    "start": "0x09E000",
+    "end": "0x09E3FF",
+    "country": "Sao Tome and Principe",
+    "priority": 52
+  },
+  {
+    "start": "0x0A0000",
+    "end": "0x0A7FFF",
+    "country": "Algeria",
+    "priority": 53
+  },
+  {
+    "start": "0x0A8000",
+    "end": "0x0A8FFF",
+    "country": "Bahamas",
+    "priority": 54
+  },
+  {
+    "start": "0x0AA000",
+    "end": "0x0AA3FF",
+    "country": "Barbados",
+    "priority": 55
+  },
+  {
+    "start": "0x0AB000",
+    "end": "0x0AB3FF",
+    "country": "Belize",
+    "priority": 56
+  },
+  {
+    "start": "0x0AC000",
+    "end": "0x0ACFFF",
+    "country": "Colombia",
+    "priority": 57
+  },
+  {
+    "start": "0x0AE000",
+    "end": "0x0AEFFF",
+    "country": "Costa Rica",
+    "priority": 58
+  },
+  {
+    "start": "0x0B0000",
+    "end": "0x0B0FFF",
+    "country": "Cuba",
+    "priority": 59
+  },
+  {
+    "start": "0x0B2000",
+    "end": "0x0B2FFF",
+    "country": "El Salvador",
+    "priority": 60
+  },
+  {
+    "start": "0x0B4000",
+    "end": "0x0B4FFF",
+    "country": "Guatemala",
+    "priority": 61
+  },
+  {
+    "start": "0x0B6000",
+    "end": "0x0B6FFF",
+    "country": "Guyana",
+    "priority": 62
+  },
+  {
+    "start": "0x0B8000",
+    "end": "0x0B8FFF",
+    "country": "Haiti",
+    "priority": 63
+  },
+  {
+    "start": "0x0BA000",
+    "end": "0x0BAFFF",
+    "country": "Honduras",
+    "priority": 64
+  },
+  {
+    "start": "0x0BC000",
+    "end": "0x0BC3FF",
+    "country": "Saint Vincent and the Grenadines",
+    "priority": 65
+  },
+  {
+    "start": "0x0BE000",
+    "end": "0x0BEFFF",
+    "country": "Jamaica",
+    "priority": 66
+  },
+  {
+    "start": "0x0C0000",
+    "end": "0x0C0FFF",
+    "country": "Nicaragua",
+    "priority": 67
+  },
+  {
+    "start": "0x0C2000",
+    "end": "0x0C2FFF",
+    "country": "Panama",
+    "priority": 68
+  },
+  {
+    "start": "0x0C4000",
+    "end": "0x0C4FFF",
+    "country": "Dominican Republic",
+    "priority": 69
+  },
+  {
+    "start": "0x0C6000",
+    "end": "0x0C6FFF",
+    "country": "Trinidad and Tobago",
+    "priority": 70
+  },
+  {
+    "start": "0x0C8000",
+    "end": "0x0C8FFF",
+    "country": "Suriname",
+    "priority": 71
+  },
+  {
+    "start": "0x0CA000",
+    "end": "0x0CA3FF",
+    "country": "Antigua and Barbuda",
+    "priority": 72
+  },
+  {
+    "start": "0x0CC000",
+    "end": "0x0CC3FF",
+    "country": "Grenada",
+    "priority": 73
+  },
+  {
+    "start": "0x0D0000",
+    "end": "0x0D7FFF",
+    "country": "Mexico",
+    "priority": 74
+  },
+  {
+    "start": "0x0D8000",
+    "end": "0x0DFFFF",
+    "country": "Venezuela",
+    "priority": 75
+  },
+  {
+    "start": "0x100000",
+    "end": "0x1FFFFF",
+    "country": "Russia",
+    "priority": 76
+  },
+  {
+    "start": "0x201000",
+    "end": "0x2013FF",
+    "country": "Namibia",
+    "priority": 77
+  },
+  {
+    "start": "0x202000",
+    "end": "0x2023FF",
+    "country": "Eritrea",
+    "priority": 78
+  },
+  {
+    "start": "0x300000",
+    "end": "0x33FFFF",
+    "country": "Italy",
+    "priority": 79
+  },
+  {
+    "start": "0x340000",
+    "end": "0x37FFFF",
+    "country": "Spain",
+    "priority": 80
+  },
+  {
+    "start": "0x380000",
+    "end": "0x3BFFFF",
+    "country": "France",
+    "priority": 81
+  },
+  {
+    "start": "0x3C0000",
+    "end": "0x3FFFFF",
+    "country": "Germany",
+    "priority": 82
+  },
+  {
+    "start": "0x400000",
+    "end": "0x4001BF",
+    "country": "Bermuda",
+    "priority": 83
+  },
+  {
+    "start": "0x4001C0",
+    "end": "0x4001FF",
+    "country": "Cayman Islands",
+    "priority": 84
+  },
+  {
+    "start": "0x400300",
+    "end": "0x4003FF",
+    "country": "Turks and Caicos Islands",
+    "priority": 85
+  },
+  {
+    "start": "0x424135",
+    "end": "0x4241F2",
+    "country": "Cayman Islands",
+    "priority": 86
+  },
+  {
+    "start": "0x424200",
+    "end": "0x4246FF",
+    "country": "Bermuda",
+    "priority": 87
+  },
+  {
+    "start": "0x424700",
+    "end": "0x424899",
+    "country": "Cayman Islands",
+    "priority": 88
+  },
+  {
+    "start": "0x424B00",
+    "end": "0x424BFF",
+    "country": "Isle of Man",
+    "priority": 89
+  },
+  {
+    "start": "0x43BE00",
+    "end": "0x43BEFF",
+    "country": "Bermuda",
+    "priority": 90
+  },
+  {
+    "start": "0x43E700",
+    "end": "0x43EAFD",
+    "country": "Isle of Man",
+    "priority": 91
+  },
+  {
+    "start": "0x43EAFE",
+    "end": "0x43EEFF",
+    "country": "Guernsey",
+    "priority": 92
+  },
+  {
+    "start": "0x400000",
+    "end": "0x43FFFF",
+    "country": "United Kingdom",
+    "priority": 93
+  },
+  {
+    "start": "0x440000",
+    "end": "0x447FFF",
+    "country": "Austria",
+    "priority": 94
+  },
+  {
+    "start": "0x448000",
+    "end": "0x44FFFF",
+    "country": "Belgium",
+    "priority": 95
+  },
+  {
+    "start": "0x450000",
+    "end": "0x457FFF",
+    "country": "Bulgaria",
+    "priority": 96
+  },
+  {
+    "start": "0x458000",
+    "end": "0x45FFFF",
+    "country": "Denmark",
+    "priority": 97
+  },
+  {
+    "start": "0x460000",
+    "end": "0x467FFF",
+    "country": "Finland",
+    "priority": 98
+  },
+  {
+    "start": "0x468000",
+    "end": "0x46FFFF",
+    "country": "Greece",
+    "priority": 99
+  },
+  {
+    "start": "0x470000",
+    "end": "0x477FFF",
+    "country": "Hungary",
+    "priority": 100
+  },
+  {
+    "start": "0x478000",
+    "end": "0x47FFFF",
+    "country": "Norway",
+    "priority": 101
+  },
+  {
+    "start": "0x480000",
+    "end": "0x487FFF",
+    "country": "Kingdom of the Netherlands",
+    "priority": 102
+  },
+  {
+    "start": "0x488000",
+    "end": "0x48FFFF",
+    "country": "Poland",
+    "priority": 103
+  },
+  {
+    "start": "0x490000",
+    "end": "0x497FFF",
+    "country": "Portugal",
+    "priority": 104
+  },
+  {
+    "start": "0x498000",
+    "end": "0x49FFFF",
+    "country": "Czechia",
+    "priority": 105
+  },
+  {
+    "start": "0x4A0000",
+    "end": "0x4A7FFF",
+    "country": "Romania",
+    "priority": 106
+  },
+  {
+    "start": "0x4A8000",
+    "end": "0x4AFFFF",
+    "country": "Sweden",
+    "priority": 107
+  },
+  {
+    "start": "0x4B0000",
+    "end": "0x4B7FFF",
+    "country": "Switzerland",
+    "priority": 108
+  },
+  {
+    "start": "0x4B8000",
+    "end": "0x4BFFFF",
+    "country": "Turkey",
+    "priority": 109
+  },
+  {
+    "start": "0x4C0000",
+    "end": "0x4C7FFF",
+    "country": "Serbia",
+    "priority": 110
+  },
+  {
+    "start": "0x4C8000",
+    "end": "0x4C83FF",
+    "country": "Cyprus",
+    "priority": 111
+  },
+  {
+    "start": "0x4CA000",
+    "end": "0x4CAFFF",
+    "country": "Ireland",
+    "priority": 112
+  },
+  {
+    "start": "0x4CC000",
+    "end": "0x4CCFFF",
+    "country": "Iceland",
+    "priority": 113
+  },
+  {
+    "start": "0x4D0000",
+    "end": "0x4D03FF",
+    "country": "Luxembourg",
+    "priority": 114
+  },
+  {
+    "start": "0x4D2000",
+    "end": "0x4D2FFF",
+    "country": "Malta",
+    "priority": 115
+  },
+  {
+    "start": "0x4D4000",
+    "end": "0x4D43FF",
+    "country": "Monaco",
+    "priority": 116
+  },
+  {
+    "start": "0x500000",
+    "end": "0x5003FF",
+    "country": "San Marino",
+    "priority": 117
+  },
+  {
+    "start": "0x501000",
+    "end": "0x5013FF",
+    "country": "Albania",
+    "priority": 118
+  },
+  {
+    "start": "0x501C00",
+    "end": "0x501FFF",
+    "country": "Croatia",
+    "priority": 119
+  },
+  {
+    "start": "0x502C00",
+    "end": "0x502FFF",
+    "country": "Latvia",
+    "priority": 120
+  },
+  {
+    "start": "0x503C00",
+    "end": "0x503FFF",
+    "country": "Lithuania",
+    "priority": 121
+  },
+  {
+    "start": "0x504C00",
+    "end": "0x504FFF",
+    "country": "Moldova",
+    "priority": 122
+  },
+  {
+    "start": "0x505C00",
+    "end": "0x505FFF",
+    "country": "Slovakia",
+    "priority": 123
+  },
+  {
+    "start": "0x506C00",
+    "end": "0x506FFF",
+    "country": "Slovenia",
+    "priority": 124
+  },
+  {
+    "start": "0x507C00",
+    "end": "0x507FFF",
+    "country": "Uzbekistan",
+    "priority": 125
+  },
+  {
+    "start": "0x508000",
+    "end": "0x50FFFF",
+    "country": "Ukraine",
+    "priority": 126
+  },
+  {
+    "start": "0x510000",
+    "end": "0x5103FF",
+    "country": "Belarus",
+    "priority": 127
+  },
+  {
+    "start": "0x511000",
+    "end": "0x5113FF",
+    "country": "Estonia",
+    "priority": 128
+  },
+  {
+    "start": "0x512000",
+    "end": "0x5123FF",
+    "country": "Macedonia",
+    "priority": 129
+  },
+  {
+    "start": "0x513000",
+    "end": "0x5133FF",
+    "country": "Bosnia and Herzegovina",
+    "priority": 130
+  },
+  {
+    "start": "0x514000",
+    "end": "0x5143FF",
+    "country": "Georgia",
+    "priority": 131
+  },
+  {
+    "start": "0x515000",
+    "end": "0x5153FF",
+    "country": "Tajikistan",
+    "priority": 132
+  },
+  {
+    "start": "0x516000",
+    "end": "0x5163FF",
+    "country": "Montenegro",
+    "priority": 133
+  },
+  {
+    "start": "0x600000",
+    "end": "0x6003FF",
+    "country": "Armenia",
+    "priority": 134
+  },
+  {
+    "start": "0x600800",
+    "end": "0x600BFF",
+    "country": "Azerbaijan",
+    "priority": 135
+  },
+  {
+    "start": "0x601000",
+    "end": "0x6013FF",
+    "country": "Kyrgyzstan",
+    "priority": 136
+  },
+  {
+    "start": "0x601800",
+    "end": "0x601BFF",
+    "country": "Turkmenistan",
+    "priority": 137
+  },
+  {
+    "start": "0x680000",
+    "end": "0x6803FF",
+    "country": "Bhutan",
+    "priority": 138
+  },
+  {
+    "start": "0x681000",
+    "end": "0x6813FF",
+    "country": "Micronesia, Federated States of",
+    "priority": 139
+  },
+  {
+    "start": "0x682000",
+    "end": "0x6823FF",
+    "country": "Mongolia",
+    "priority": 140
+  },
+  {
+    "start": "0x683000",
+    "end": "0x6833FF",
+    "country": "Kazakhstan",
+    "priority": 141
+  },
+  {
+    "start": "0x684000",
+    "end": "0x6843FF",
+    "country": "Palau",
+    "priority": 142
+  },
+  {
+    "start": "0x700000",
+    "end": "0x700FFF",
+    "country": "Afghanistan",
+    "priority": 143
+  },
+  {
+    "start": "0x702000",
+    "end": "0x702FFF",
+    "country": "Bangladesh",
+    "priority": 144
+  },
+  {
+    "start": "0x704000",
+    "end": "0x704FFF",
+    "country": "Myanmar",
+    "priority": 145
+  },
+  {
+    "start": "0x706000",
+    "end": "0x706FFF",
+    "country": "Kuwait",
+    "priority": 146
+  },
+  {
+    "start": "0x708000",
+    "end": "0x708FFF",
+    "country": "Laos",
+    "priority": 147
+  },
+  {
+    "start": "0x70A000",
+    "end": "0x70AFFF",
+    "country": "Nepal",
+    "priority": 148
+  },
+  {
+    "start": "0x70C000",
+    "end": "0x70C3FF",
+    "country": "Oman",
+    "priority": 149
+  },
+  {
+    "start": "0x70E000",
+    "end": "0x70EFFF",
+    "country": "Cambodia",
+    "priority": 150
+  },
+  {
+    "start": "0x710000",
+    "end": "0x717FFF",
+    "country": "Saudi Arabia",
+    "priority": 151
+  },
+  {
+    "start": "0x718000",
+    "end": "0x71FFFF",
+    "country": "South Korea",
+    "priority": 152
+  },
+  {
+    "start": "0x720000",
+    "end": "0x727FFF",
+    "country": "North Korea",
+    "priority": 153
+  },
+  {
+    "start": "0x728000",
+    "end": "0x72FFFF",
+    "country": "Iraq",
+    "priority": 154
+  },
+  {
+    "start": "0x730000",
+    "end": "0x737FFF",
+    "country": "Iran",
+    "priority": 155
+  },
+  {
+    "start": "0x738000",
+    "end": "0x73FFFF",
+    "country": "Israel",
+    "priority": 156
+  },
+  {
+    "start": "0x740000",
+    "end": "0x747FFF",
+    "country": "Jordan",
+    "priority": 157
+  },
+  {
+    "start": "0x748000",
+    "end": "0x74FFFF",
+    "country": "Lebanon",
+    "priority": 158
+  },
+  {
+    "start": "0x750000",
+    "end": "0x757FFF",
+    "country": "Malaysia",
+    "priority": 159
+  },
+  {
+    "start": "0x758000",
+    "end": "0x75FFFF",
+    "country": "Philippines",
+    "priority": 160
+  },
+  {
+    "start": "0x760000",
+    "end": "0x767FFF",
+    "country": "Pakistan",
+    "priority": 161
+  },
+  {
+    "start": "0x768000",
+    "end": "0x76FFFF",
+    "country": "Singapore",
+    "priority": 162
+  },
+  {
+    "start": "0x770000",
+    "end": "0x777FFF",
+    "country": "Sri Lanka",
+    "priority": 163
+  },
+  {
+    "start": "0x778000",
+    "end": "0x77FFFF",
+    "country": "Syria",
+    "priority": 164
+  },
+  {
+    "start": "0x789000",
+    "end": "0x789FFF",
+    "country": "Hong Kong",
+    "priority": 165
+  },
+  {
+    "start": "0x780000",
+    "end": "0x7BFFFF",
+    "country": "China",
+    "priority": 166
+  },
+  {
+    "start": "0x7C0000",
+    "end": "0x7FFFFF",
+    "country": "Australia",
+    "priority": 167
+  },
+  {
+    "start": "0x800000",
+    "end": "0x83FFFF",
+    "country": "India",
+    "priority": 168
+  },
+  {
+    "start": "0x840000",
+    "end": "0x87FFFF",
+    "country": "Japan",
+    "priority": 169
+  },
+  {
+    "start": "0x880000",
+    "end": "0x887FFF",
+    "country": "Thailand",
+    "priority": 170
+  },
+  {
+    "start": "0x888000",
+    "end": "0x88FFFF",
+    "country": "Viet Nam",
+    "priority": 171
+  },
+  {
+    "start": "0x890000",
+    "end": "0x890FFF",
+    "country": "Yemen",
+    "priority": 172
+  },
+  {
+    "start": "0x894000",
+    "end": "0x894FFF",
+    "country": "Bahrain",
+    "priority": 173
+  },
+  {
+    "start": "0x895000",
+    "end": "0x8953FF",
+    "country": "Brunei",
+    "priority": 174
+  },
+  {
+    "start": "0x896000",
+    "end": "0x896FFF",
+    "country": "United Arab Emirates",
+    "priority": 175
+  },
+  {
+    "start": "0x897000",
+    "end": "0x8973FF",
+    "country": "Solomon Islands",
+    "priority": 176
+  },
+  {
+    "start": "0x898000",
+    "end": "0x898FFF",
+    "country": "Papua New Guinea",
+    "priority": 177
+  },
+  {
+    "start": "0x899000",
+    "end": "0x8993FF",
+    "country": "Taiwan",
+    "priority": 178
+  },
+  {
+    "start": "0x8A0000",
+    "end": "0x8A7FFF",
+    "country": "Indonesia",
+    "priority": 179
+  },
+  {
+    "start": "0x900000",
+    "end": "0x9003FF",
+    "country": "Marshall Islands",
+    "priority": 180
+  },
+  {
+    "start": "0x901000",
+    "end": "0x9013FF",
+    "country": "Cook Islands",
+    "priority": 181
+  },
+  {
+    "start": "0x902000",
+    "end": "0x9023FF",
+    "country": "Samoa",
+    "priority": 182
+  },
+  {
+    "start": "0xA00000",
+    "end": "0xAFFFFF",
+    "country": "United States",
+    "priority": 183
+  },
+  {
+    "start": "0xC00000",
+    "end": "0xC3FFFF",
+    "country": "Canada",
+    "priority": 184
+  },
+  {
+    "start": "0xC80000",
+    "end": "0xC87FFF",
+    "country": "New Zealand",
+    "priority": 185
+  },
+  {
+    "start": "0xC88000",
+    "end": "0xC88FFF",
+    "country": "Fiji",
+    "priority": 186
+  },
+  {
+    "start": "0xC8A000",
+    "end": "0xC8A3FF",
+    "country": "Nauru",
+    "priority": 187
+  },
+  {
+    "start": "0xC8C000",
+    "end": "0xC8C3FF",
+    "country": "Saint Lucia",
+    "priority": 188
+  },
+  {
+    "start": "0xC8D000",
+    "end": "0xC8D3FF",
+    "country": "Tonga",
+    "priority": 189
+  },
+  {
+    "start": "0xC8E000",
+    "end": "0xC8E3FF",
+    "country": "Kiribati",
+    "priority": 190
+  },
+  {
+    "start": "0xC90000",
+    "end": "0xC903FF",
+    "country": "Vanuatu",
+    "priority": 191
+  },
+  {
+    "start": "0xE00000",
+    "end": "0xE3FFFF",
+    "country": "Argentina",
+    "priority": 192
+  },
+  {
+    "start": "0xE40000",
+    "end": "0xE7FFFF",
+    "country": "Brazil",
+    "priority": 193
+  },
+  {
+    "start": "0xE80000",
+    "end": "0xE80FFF",
+    "country": "Chile",
+    "priority": 194
+  },
+  {
+    "start": "0xE84000",
+    "end": "0xE84FFF",
+    "country": "Ecuador",
+    "priority": 195
+  },
+  {
+    "start": "0xE88000",
+    "end": "0xE88FFF",
+    "country": "Paraguay",
+    "priority": 196
+  },
+  {
+    "start": "0xE8C000",
+    "end": "0xE8CFFF",
+    "country": "Peru",
+    "priority": 197
+  },
+  {
+    "start": "0xE90000",
+    "end": "0xE90FFF",
+    "country": "Uruguay",
+    "priority": 198
+  },
+  {
+    "start": "0xE94000",
+    "end": "0xE94FFF",
+    "country": "Bolivia",
+    "priority": 199
+  },
+  {
+    "start": "0xF00000",
+    "end": "0xF07FFF",
+    "country": "ICAO (temporary)",
+    "priority": 200
+  },
+  {
+    "start": "0xF09000",
+    "end": "0xF093FF",
+    "country": "ICAO (special use)",
+    "priority": 201
+  },
+  {
+    "start": "0x200000",
+    "end": "0x27FFFF",
+    "country": "Unassigned (AFI region)",
+    "priority": 202
+  },
+  {
+    "start": "0x280000",
+    "end": "0x28FFFF",
+    "country": "Unassigned (SAM region)",
+    "priority": 203
+  },
+  {
+    "start": "0x500000",
+    "end": "0x5FFFFF",
+    "country": "Unassigned (EUR / NAT regions)",
+    "priority": 204
+  },
+  {
+    "start": "0x600000",
+    "end": "0x67FFFF",
+    "country": "Unassigned (MID region)",
+    "priority": 205
+  },
+  {
+    "start": "0x680000",
+    "end": "0x6FFFFF",
+    "country": "Unassigned (ASIA region)",
+    "priority": 206
+  },
+  {
+    "start": "0x900000",
+    "end": "0x9FFFFF",
+    "country": "Unassigned (NAM / PAC regions)",
+    "priority": 207
+  },
+  {
+    "start": "0xB00000",
+    "end": "0xBFFFFF",
+    "country": "Unassigned (reserved for future use)",
+    "priority": 208
+  },
+  {
+    "start": "0xEC0000",
+    "end": "0xEFFFFF",
+    "country": "Unassigned (CAR region)",
+    "priority": 209
+  },
+  {
+    "start": "0xD00000",
+    "end": "0xDFFFFF",
+    "country": "Unassigned (reserved for future use)",
+    "priority": 210
+  },
+  {
+    "start": "0xF00000",
+    "end": "0xFFFFFF",
+    "country": "Unassigned (reserved for future use)",
+    "priority": 211
+  }
+]
