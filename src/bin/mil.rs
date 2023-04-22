@@ -22,7 +22,7 @@ struct Key {
 }
 
 lazy_static! {
-    static ref ALLOCS: aircraft_icao_range::Allocs = aircraft_icao_range::Allocs::new();
+    static ref ALLOCS: aircraft_icao_country::Allocs = aircraft_icao_country::Allocs::new();
 }
 
 const H3_RES: u8 = 0;

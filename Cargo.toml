@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-adsbx_json = "12.0.0"
+adsbx_json = { path = "../adsbx-json" }
 anyhow = "1.0.53"
 chrono = "0.4.19"
 bzip2 = "0.4.3"
 env_logger = "0.10.0"
+futures = "0.3"
 geo = "0.23.1"
 geo-types = "0.7.8"
 geojson = "0.24.0"
@@ -20,10 +21,16 @@ itertools = "0.10"
 log = "0.4.17"
 lru = "0.9"
 pariter = "0.5"
+parking_lot = "0.12"
+paste = "1.0"
 rayon = "1.5.1"
 regex = "1.5"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.79"
-shapefile = {version = "0.3.0", features = ["geo-types"]}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_plain = "1.0"
+shapefile = {version = "0.3", features = ["geo-types"]}
 structopt = "0.3.21"
-aircraft_icao_range = { path = "../../aircraft_icao_range" }
+aircraft_icao_country = "1"
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-serde_json-1"] }

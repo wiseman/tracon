@@ -5,6 +5,8 @@ use anyhow::{Context, Result as AnyResult};
 use indicatif::{ProgressBar, ProgressStyle};
 use pariter::IteratorExt;
 
+pub mod db;
+
 /// Loads a JSON file containing an ADS-B Exchange API response and parses it
 /// into a struct.
 pub fn load_adsbx_json(path: &str) -> AnyResult<adsbx_json::v2::Response> {
