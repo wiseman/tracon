@@ -31,10 +31,11 @@ fn main() -> Result<()> {
     );
     let path_groups = args.paths.chunks(100).collect::<Vec<_>>();
     let rt = Runtime::new()?;
+
     path_groups.par_iter().for_each(|paths| {
         let (client, connection) = rt
             .block_on(tokio_postgres::connect(
-                "host=localhost user=adsbx password=adsbx dbname=adsbx",
+                "host=192.168.1.24 port=54322 user=orbital password=orbital dbname=orbital",
                 NoTls,
             ))
             .unwrap();

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-adsbx_json = { path = "../adsbx-json" }
+adsbx_json = "13.1"
 anyhow = "1.0.53"
 chrono = "0.4.19"
 bzip2 = "0.4.3"

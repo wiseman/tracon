@@ -1,5 +1,4 @@
 use adsbx_json::v2::{Aircraft, AltitudeOrGround};
-use serde_json::Value as JsonValue;
 use structopt::lazy_static;
 use thiserror::Error;
 use tokio::sync::RwLock;
@@ -74,10 +73,10 @@ macro_rules! define_cache_and_lookup {
 }
 
 // Usage of the macro
-define_cache_and_lookup!(adsbx_json::v2::Emergency, emergency);
-define_cache_and_lookup!(adsbx_json::v2::MessageType, message_type);
-define_cache_and_lookup!(adsbx_json::v2::NavMode, nav_mode);
-define_cache_and_lookup!(adsbx_json::v2::SilType, sil_type);
+define_cache_and_lookup!(adsbx_json::v2::Emergency, adsbx_emergency);
+define_cache_and_lookup!(adsbx_json::v2::MessageType, adsbx_message_type);
+define_cache_and_lookup!(adsbx_json::v2::NavMode, adsbx_nav_mode);
+define_cache_and_lookup!(adsbx_json::v2::SilType, adsbx_sil_type);
 
 pub async fn insert_aircraft(
     client: &tokio_postgres::Client,
@@ -89,7 +88,7 @@ pub async fn insert_aircraft(
         client
             .query_one(
                 r#"
-        INSERT INTO acas_ra (
+        INSERT INTO adsbx_acas_ra (
             ara, mte, rac, rat, tti,
             advisory, advisory_complement, bytes,
             threat_id_hex, unix_timestamp, utc
@@ -169,7 +168,7 @@ pub async fn insert_aircraft(
 
     let emergency_id = if let Some(emergency) = aircraft.emergency {
         // println!("emergency: {:?}", emergency);
-        Some(id_from_emergency(client, emergency).await?)
+        Some(id_from_adsbx_emergency(client, emergency).await?)
     } else {
         None
     };
@@ -187,9 +186,9 @@ pub async fn insert_aircraft(
                 AltitudeOrGround::OnGround => &-9999,
                 AltitudeOrGround::Altitude(altitude) => altitude,
             });
-    let message_type_id = id_from_message_type(client, aircraft.message_type).await?;
+    let message_type_id = id_from_adsbx_message_type(client, aircraft.message_type).await?;
     let sil_type_id = if let Some(sil_type) = aircraft.sil_type {
-        Some(id_from_sil_type(client, sil_type).await?)
+        Some(id_from_adsbx_sil_type(client, sil_type).await?)
     } else {
         None
     };
@@ -198,7 +197,7 @@ pub async fn insert_aircraft(
     let aircraft_id: i32 = client
         .query_one(
             r#"
-        INSERT INTO aircraft (
+        INSERT INTO adsbx_aircraft (
             acas_ra_id, adsb_version, aircraft_type,
             barometric_altitude, call_sign,
             emergency_id,
