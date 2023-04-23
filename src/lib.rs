@@ -1,9 +1,13 @@
+use std::pin::Pin;
+use std::sync::Arc;
 use std::{io::Read, str::FromStr};
 
 use adsbx_json::v2::Aircraft;
 use anyhow::{Context, Result as AnyResult};
+use futures::Future;
 use indicatif::{ProgressBar, ProgressStyle};
-use pariter::IteratorExt;
+use rayon::prelude::*;
+use std::sync::Mutex;
 
 pub mod db;
 
@@ -21,39 +25,131 @@ pub fn load_adsbx_json(path: &str) -> AnyResult<adsbx_json::v2::Response> {
     adsbx_json::v2::Response::from_str(&json_contents).with_context(|| format!("Parsing {}", path))
 }
 
-pub fn for_each_adsbx_json<OP>(paths: &[String], mut op: OP)
+pub fn for_each_adsbx_json<OP>(paths: &[String], op: OP)
 where
-    OP: FnMut(adsbx_json::v2::Response) -> Option<String> + Sync + Send,
+    OP: FnMut(adsbx_json::v2::Response) -> Pin<Box<dyn Future<Output = Option<String>> + Send>>
+        + Sync
+        + Send
+        + 'static,
 {
     let bar = ProgressBar::new(paths.len().try_into().unwrap());
     bar.set_style(
         ProgressStyle::default_bar()
             .template("{wide_bar} {pos}/{len} {eta} {elapsed_precise} | {msg}"),
     );
-    pariter::scope(|scope| {
+
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(num_cpus::get())
+        .build()
+        .unwrap();
+
+    let op = Arc::new(Mutex::new(op));
+
+    pool.install(|| {
         paths
-            .iter()
-            .cloned()
-            .parallel_map_scoped(scope, |path| match load_adsbx_json(&path) {
-                Ok(data) => {
-                    bar.inc(1);
-                    Ok((path, data))
-                }
-                Err(e) => {
-                    eprintln!("Error loading {}: {}", path, e);
-                    Err(e)
-                }
+            .par_iter()
+            .map(|path| {
+                let result = load_adsbx_json(&path);
+                bar.inc(1);
+                (path, result)
             })
-            .for_each(|result| match result {
-                Ok((_, data)) => {
-                    if let Some(msg) = op(data) {
-                        bar.set_message(msg);
+            .for_each_with(
+                tokio::runtime::Handle::current(),
+                |handle, (path, result)| match result {
+                    Ok(data) => {
+                        let mut op = op.lock().unwrap();
+                        let fut = op(data);
+                        drop(op);
+                        let msg = handle.block_on(fut);
+                        if let Some(msg) = msg {
+                            bar.set_message(msg);
+                        }
                     }
+                    Err(e) => {
+                        eprintln!("Error loading {}: {}", path, e);
+                    }
+                },
+            );
+    });
+
+    bar.finish();
+}
+
+use std::fs::File;
+use std::io::BufReader;
+use std::path::Path;
+use std::thread;
+
+use bzip2::read::BzDecoder;
+use crossbeam_channel::{bounded, Receiver};
+use rayon::ThreadPoolBuilder;
+
+pub async fn for_each_adsbx_json2<F, Fut>(file_paths: Vec<String>, mut closure: F)
+where
+    F: FnMut(adsbx_json::v2::Response) -> Fut + Send + Sync + 'static,
+    Fut: std::future::Future<Output = ()> + Send + 'static,
+{
+    let file_paths = Arc::new(file_paths);
+    let file_paths = Mutex::new(file_paths.iter());
+
+    let (tx, rx) = bounded(1);
+    let progress_bar = ProgressBar::new(file_paths.lock().unwrap().len() as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .progress_chars("#>-"),
+    );
+
+    ThreadPoolBuilder::new()
+        .num_threads(4)
+        .build()
+        .unwrap()
+        .install(|| {
+            while let Some(file_path) = file_paths.lock().unwrap().next() {
+                let data = load_adsbx_json(file_path).unwrap();
+                tx.send(data).unwrap();
+            }
+        });
+
+    let cloned_progress_bar = progress_bar.clone();
+
+    let process_task = async move {
+        while let Ok(data) = rx.recv() {
+            closure(data).await;
+            cloned_progress_bar.inc(1);
+        }
+    };
+
+    process_task.await;
+    progress_bar.finish();
+}
+
+pub fn for_each_adsbx_json_sync<OP>(paths: &[String], mut op: OP)
+where
+    OP: FnMut(adsbx_json::v2::Response) -> Option<String>,
+{
+    let bar = ProgressBar::new(paths.len().try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{wide_bar} {pos}/{len} {eta} {elapsed_precise} | {msg}"),
+    );
+    paths.iter().for_each(|path| {
+        let result = load_adsbx_json(path);
+        bar.inc(1);
+        match result {
+            Ok(data) => {
+                let msg = op(data);
+                if let Some(msg) = msg {
+                    bar.set_message(msg);
                 }
-                Err(_e) => {}
-            });
-    })
-    .unwrap();
+            }
+            Err(e) => {
+                eprintln!("Error loading {}: {}", path, e);
+            }
+        }
+    });
     bar.finish();
 }
 

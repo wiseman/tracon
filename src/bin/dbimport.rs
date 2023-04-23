@@ -1,13 +1,11 @@
-use adsbx_json::v2::{
-    AgedPosition, Aircraft, AltitudeOrGround, DatabaseFlags, Emergency, MessageType, NavMode,
-    SilType,
-};
 use anyhow::Result;
-use chrono::{TimeZone, Utc};
-use dump::{db::adsbx::insert_aircraft, for_each_adsbx_json};
+use dump::{db::adsbx::insert_aircraft, load_adsbx_json};
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
+use std::{panic, process};
+use structopt::StructOpt;
+use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use futures::stream::{FuturesUnordered, StreamExt};
-use tokio_stream::wrappers::Iter;
 
 #[derive(StructOpt, Debug)]
 struct CliArgs {
@@ -15,44 +13,42 @@ struct CliArgs {
     pub paths: Vec<String>,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    // If any thread panics, exit the process.
+    let orig_hook = panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        orig_hook(panic_info);
+        println!("Aborting");
+        process::exit(1);
+    }));
+
     let args = CliArgs::from_args();
-
-    // Connect to the PostgreSQL database
-    let (client, connection) = tokio_postgres::connect(
-        "host=localhost user=adsbx password=adsbx dbname=adsbx",
-        NoTls,
-    )
-    .await?;
-
-    // Spawn a task to manage the connection
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            eprintln!("Connection error: {}", e);
-        }
-    });
-
-    for_each_adsbx_json(&args.paths, |adsbx_data| {
-        let now = adsbx_data.now;
-        let client = &client;
-
-        let insert_futures: FuturesUnordered<_> = adsbx_data
-            .aircraft
-            .iter()
-            .map(|ac| async move { insert_aircraft(client, &now, ac).await })
-            .collect();
-
-        let results = Iter::new(insert_futures.into_iter()).collect::<Vec<_>>().await;
-
-        for result in results {
-            if let Err(e) = result {
-                eprintln!("Insert error: {}", e);
+    // Batch the paths into groups of 100.
+    let bar = ProgressBar::new(args.paths.len().try_into().unwrap());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{wide_bar} {pos}/{len} {eta} {elapsed_precise} | {msg}"),
+    );
+    let path_groups = args.paths.chunks(100).collect::<Vec<_>>();
+    let rt = Runtime::new()?;
+    path_groups.par_iter().for_each(|paths| {
+        let (client, connection) = rt
+            .block_on(tokio_postgres::connect(
+                "host=localhost user=adsbx password=adsbx dbname=adsbx",
+                NoTls,
+            ))
+            .unwrap();
+        rt.spawn(connection);
+        paths.iter().for_each(|path| {
+            bar.inc(1);
+            let adsbx_data = load_adsbx_json(path).unwrap();
+            let now = adsbx_data.now;
+            let aircraft = adsbx_data.aircraft;
+            for ac in aircraft {
+                rt.block_on(insert_aircraft(&client, &now, &ac)).unwrap();
             }
-        }
-
-        None
+        });
     });
-
+    bar.finish();
     Ok(())
 }

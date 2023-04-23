@@ -2,6 +2,7 @@ use adsbx_json::v2::{Aircraft, AltitudeOrGround};
 use serde_json::Value as JsonValue;
 use structopt::lazy_static;
 use thiserror::Error;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -14,8 +15,8 @@ macro_rules! define_cache_and_lookup {
     ($enum_type:ty, $table_name:ident) => {
         paste::paste! {
         lazy_static::lazy_static! {
-            static ref [<CACHE_ $table_name:upper>]: std::sync::RwLock<std::collections::HashMap<$enum_type, i32>> =
-                std::sync::RwLock::new(std::collections::HashMap::new());
+            static ref [<CACHE_ $table_name:upper>]: RwLock<std::collections::HashMap<$enum_type, i32>> =
+                RwLock::new(std::collections::HashMap::new());
         }
 
         // Generate a unique function name by appending the table name
@@ -26,10 +27,10 @@ macro_rules! define_cache_and_lookup {
             ) -> Result<i32, Error> {
                 // Check if the cache is empty. If it is, then fill it.
                 {
-                    let cache_read_guard = [<CACHE_ $table_name:upper>].read().unwrap();
+                    let cache_read_guard = [<CACHE_ $table_name:upper>].read().await;
                     if cache_read_guard.is_empty() {
                         drop(cache_read_guard);
-                        let mut cache_write_guard = [<CACHE_ $table_name:upper>].write().unwrap();
+                        let mut cache_write_guard = [<CACHE_ $table_name:upper>].write().await;
                         if cache_write_guard.is_empty() {
                             for row in client
                                 .query(
@@ -58,7 +59,7 @@ macro_rules! define_cache_and_lookup {
                 // Now look up the value in the cache.
                 let id: i32 = *[<CACHE_ $table_name:upper>]
                     .read()
-                    .unwrap()
+                    .await
                     .get(&value)
                     .ok_or(Error::AdsbxDbError(format!(
                         "{} {:?} not found in cache",
@@ -147,27 +148,27 @@ pub async fn insert_aircraft(
     // };
 
     // Insert MlatFields if it exists
-    if let Some(mlat_fields) = &aircraft.mlat_fields {
-        // Insert each mlat field into the database.
-        for mlat_field in mlat_fields {
-            client
-                .execute(
-                    r#"
-            INSERT INTO mlat_fields (
-                mlat, tisb, tisb_id
-            ) VALUES (
-                $1, $2, $3
-            )
-            "#,
-                    &[&mlat_field],
-                )
-                .await
-                .map_err(|e| Error::AdsbxDbError(format!("Error inserting MlatFields: {}", e)))?;
-        }
-    }
+    // if let Some(mlat_fields) = &aircraft.mlat_fields {
+    //     // Insert each mlat field into the database.
+    //     for mlat_field in mlat_fields {
+    //         client
+    //             .execute(
+    //                 r#"
+    //         INSERT INTO mlat_fields (
+    //             mlat, tisb, tisb_id
+    //         ) VALUES (
+    //             $1, $2, $3
+    //         )
+    //         "#,
+    //                 &[&mlat_field],
+    //             )
+    //             .await
+    //             .map_err(|e| Error::AdsbxDbError(format!("Error inserting MlatFields: {}", e)))?;
+    //     }
+    // }
 
     let emergency_id = if let Some(emergency) = aircraft.emergency {
-        println!("emergency: {:?}", emergency);
+        // println!("emergency: {:?}", emergency);
         Some(id_from_emergency(client, emergency).await?)
     } else {
         None
@@ -300,82 +301,73 @@ pub async fn insert_aircraft(
         .map_err(|e| {
             Error::AdsbxDbError(format!("Error inserting aircraft into database: {}", e))
         })?.get(0);
-    println!("Inserted aircraft: {}", aircraft_id);
-    // Get the ID of the inserted aircraft
-    let aircraft_id: i32 = client
-        .query_one("SELECT LASTVAL()", &[])
-        .await
-        .map_err(|e| {
-            Error::AdsbxDbError(format!("Error getting aircraft ID from database: {}", e))
-        })?
-        .get(0);
-
+    // println!("Inserted aircraft: {}", aircraft_id);
     // Insert related data into corresponding tables
 
     // NavModes
-    if let Some(nav_modes) = &aircraft.nav_modes {
-        for nav_mode in nav_modes {
-            let nav_mode_id: i32 = client
-                .query_one(
-                    "INSERT INTO nav_mode (mode) VALUES ($1) RETURNING id",
-                    &[&serde_json::to_value(nav_mode).unwrap_or(JsonValue::Null)],
-                )
-                .await
-                .map_err(|e| {
-                    Error::AdsbxDbError(format!("Error inserting nav_mode into database: {}", e))
-                })?
-                .get(0);
+    // if let Some(nav_modes) = &aircraft.nav_modes {
+    //     for nav_mode in nav_modes {
+    //         let nav_mode_id: i32 = client
+    //             .query_one(
+    //                 "INSERT INTO nav_mode (mode) VALUES ($1) RETURNING id",
+    //                 &[&serde_json::to_value(nav_mode).unwrap_or(JsonValue::Null)],
+    //             )
+    //             .await
+    //             .map_err(|e| {
+    //                 Error::AdsbxDbError(format!("Error inserting nav_mode into database: {}", e))
+    //             })?
+    //             .get(0);
 
-            client
-                .execute(
-                    "INSERT INTO aircraft_nav_modes (aircraft_id, nav_mode_id) VALUES ($1, $2)",
-                    &[&aircraft_id, &nav_mode_id],
-                )
-                .await
-                .map_err(|e| {
-                    Error::AdsbxDbError(format!(
-                        "Error inserting aircraft_nav_modes into database: {}",
-                        e
-                    ))
-                })?;
-        }
-    }
+    //         client
+    //             .execute(
+    //                 "INSERT INTO aircraft_nav_modes (aircraft_id, nav_mode_id) VALUES ($1, $2)",
+    //                 &[&aircraft_id, &nav_mode_id],
+    //             )
+    //             .await
+    //             .map_err(|e| {
+    //                 Error::AdsbxDbError(format!(
+    //                     "Error inserting aircraft_nav_modes into database: {}",
+    //                     e
+    //                 ))
+    //             })?;
+    //     }
+    // }
 
     // MlatFields
-    if let Some(mlat_fields) = &aircraft.mlat_fields {
-        for mlat_field in mlat_fields {
-            client
-                .execute(
-                    "INSERT INTO aircraft_mlat_fields (aircraft_id, mlat_field) VALUES ($1, $2)",
-                    &[&aircraft_id, &mlat_field],
-                )
-                .await
-                .map_err(|e| {
-                    Error::AdsbxDbError(format!(
-                        "Error inserting aircraft_mlat_fields into database: {}",
-                        e
-                    ))
-                })?;
-        }
-    }
+    // if let Some(mlat_fields) = &aircraft.mlat_fields {
+    //     for mlat_field in mlat_fields {
+    //         client
+    //             .execute(
+    //                 "INSERT INTO aircraft_mlat_fields (aircraft_id, mlat_field) VALUES ($1, $2)",
+    //                 &[&aircraft_id, &mlat_field],
+    //             )
+    //             .await
+    //             .map_err(|e| {
+    //                 Error::AdsbxDbError(format!(
+    //                     "Error inserting aircraft_mlat_fields into database: {}",
+    //                     e
+    //                 ))
+    //             })?;
+    //     }
+    // }
 
     // TisbFields
-    if let Some(tisb_fields) = &aircraft.tisb_fields {
-        for tisb_field in tisb_fields {
-            client
-                .execute(
-                    "INSERT INTO aircraft_tisb_fields (aircraft_id, tisb_field) VALUES ($1, $2)",
-                    &[&aircraft_id, &tisb_field],
-                )
-                .await
-                .map_err(|e| {
-                    Error::AdsbxDbError(format!(
-                        "Error inserting aircraft_tisb_fields into database: {}",
-                        e
-                    ))
-                })?;
-        }
-    }
+    // if let Some(tisb_fields) = &aircraft.tisb_fields {
+    //     for tisb_field in tisb_fields {
+    //         client
+    //             .execute(
+    //                 "INSERT INTO aircraft_tisb_fields (aircraft_id, tisb_field) VALUES ($1, $2)",
+    //                 &[&aircraft_id, &tisb_field],
+    //             )
+    //             .await
+    //             .map_err(|e| {
+    //                 Error::AdsbxDbError(format!(
+    //                     "Error inserting aircraft_tisb_fields into database: {}",
+    //                     e
+    //                 ))
+    //             })?;
+    //     }
+    // }
 
     Ok(())
 }
