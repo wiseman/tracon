@@ -4,7 +4,9 @@ version = 3
 
 [[package]]
 name = "adsbx_json"
-version = "13.1.0"
+version = "14.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e00559ae449eb34e8247c0a8f33470d45e6b88b8e58f53ef91b260c73ea3535c"
 dependencies = [
  "chrono",
  "serde",
