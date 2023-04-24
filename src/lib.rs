@@ -156,10 +156,10 @@ where
 /// Represents a bounding box. Used for filtering data to a region of interest.
 #[derive(Debug, Clone, Copy)]
 pub struct Bounds {
-    pub min_lat: f64,
-    pub min_lon: f64,
-    pub max_lat: f64,
-    pub max_lon: f64,
+    pub min_lat: f32,
+    pub min_lon: f32,
+    pub max_lat: f32,
+    pub max_lon: f32,
 }
 
 impl FromStr for Bounds {

@@ -1,7 +1,12 @@
+use std::fmt::Binary;
+
 use adsbx_json::v2::{Aircraft, AltitudeOrGround};
+use futures::pin_mut;
 use structopt::lazy_static;
 use thiserror::Error;
 use tokio::sync::RwLock;
+use tokio_postgres::types::{ToSql, Type};
+use tokio_postgres::{binary_copy::BinaryCopyInWriter, Client};
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -21,7 +26,7 @@ macro_rules! define_cache_and_lookup {
         // Generate a unique function name by appending the table name
         paste::paste! {
             async fn [<id_from_ $table_name>](
-                client: &tokio_postgres::Client,
+                client: &tokio_postgres::Transaction<'_>,
                 value: $enum_type,
             ) -> Result<i32, Error> {
                 // Check if the cache is empty. If it is, then fill it.
@@ -79,7 +84,7 @@ define_cache_and_lookup!(adsbx_json::v2::NavMode, adsbx_nav_mode);
 define_cache_and_lookup!(adsbx_json::v2::SilType, adsbx_sil_type);
 
 pub async fn insert_aircraft(
-    client: &tokio_postgres::Client,
+    client: &tokio_postgres::Transaction<'_>,
     now: &chrono::DateTime<chrono::Utc>,
     aircraft: &Aircraft,
 ) -> Result<(), Error> {
@@ -256,9 +261,8 @@ pub async fn insert_aircraft(
             ],
         )
         .await
-        .map_err(|e| {
-            Error::AdsbxDbError(format!("Error inserting aircraft into database: {}", e))
-        })?.get(0);
+        .map_err(|e| Error::AdsbxDbError(format!("Error inserting aircraft into database: {}", e)))?
+        .get(0);
     // println!("Inserted aircraft: {}", aircraft_id);
     // Insert related data into corresponding tables
 
@@ -328,4 +332,106 @@ pub async fn insert_aircraft(
     // }
 
     Ok(())
+}
+
+pub async fn insert_adsbx_aircrafts(
+    client: &mut Client,
+    now: &chrono::DateTime<chrono::Utc>,
+    aircrafts: &Vec<Aircraft>,
+) -> Result<(), Error> {
+    let tx = client
+        .transaction()
+        .await
+        .map_err(|e| Error::AdsbxDbError(format!("Error creating transaction: {}", e)))?;
+    let sink = tx
+        .copy_in("COPY adsbx_aircraft (adsb_version, aircraft_type, barometric_altitude, call_sign, emergency_id, geometric_altitude, gps_ok_before, ground_speed_knots, hex, lat, lon, nac_p, nic, outside_air_temperature, registration, roll, seen, squawk, wind_direction, wind_speed) FROM STDIN BINARY")
+        .await
+        .map_err(|e| {
+            Error::AdsbxDbError(format!("Error creating adsbx_aircraft copy sink: {}", e))
+        })?;
+    let col_types = vec![
+        Type::INT2,
+        Type::TEXT,
+        Type::INT4,
+        Type::TEXT,
+        Type::INT2,
+        Type::INT4,
+        Type::TIMESTAMPTZ,
+        Type::FLOAT4,
+        Type::TEXT,
+        Type::FLOAT4,
+        Type::FLOAT4,
+        Type::INT2,
+        Type::INT2,
+        Type::FLOAT4,
+        Type::TEXT,
+        Type::FLOAT4,
+        Type::TIMESTAMPTZ,
+        Type::TEXT,
+        Type::INT2,
+        Type::INT2,
+    ];
+    let writer = BinaryCopyInWriter::new(sink, &col_types);
+    let num_written = write(writer, &now, &aircrafts).await;
+    tx.commit()
+        .await
+        .map_err(|e| Error::AdsbxDbError(format!("Error committing transaction: {}", e)))?;
+    Ok(())
+}
+
+async fn write(
+    writer: BinaryCopyInWriter,
+    now: &chrono::DateTime<chrono::Utc>,
+    aircraft: &Vec<Aircraft>,
+) {
+    pin_mut!(writer);
+    for aircraft in aircraft {
+        let barometric_altitude =
+            aircraft
+                .barometric_altitude
+                .as_ref()
+                .map(|baro_altitude| match baro_altitude {
+                    AltitudeOrGround::OnGround => &-9999,
+                    AltitudeOrGround::Altitude(altitude) => altitude,
+                });
+        let emergency_id: Option<i16> = None;
+        let seen_timestamp =
+            *now - chrono::Duration::milliseconds((aircraft.seen.as_secs_f64() * 1000.0) as i64);
+        writer
+            .as_mut()
+            .write(&[
+                // Convert adsb_version to u32.
+                &(aircraft.adsb_version.map(|v| v as i16)),
+                &aircraft.aircraft_type,
+                &barometric_altitude,
+                &aircraft.call_sign,
+                &emergency_id,
+                &aircraft.geometric_altitude,
+                &aircraft.gps_ok_before,
+                &aircraft.ground_speed_knots,
+                &aircraft.hex,
+                &aircraft.lat,
+                &aircraft.lon,
+                &(aircraft.nac_p.map(|v| v as i16)),
+                &(aircraft.nic.map(|v| v as i16)),
+                &aircraft.outside_air_temperature,
+                &aircraft.registration,
+                &aircraft.roll,
+                // seen:
+                &seen_timestamp,
+                &aircraft.squawk,
+                &(aircraft.wind_direction.map(|v| v as i16)),
+                &(aircraft.wind_speed.map(|v| v as i16)),
+            ])
+            .await
+            .map_err(|e| {
+                Error::AdsbxDbError(format!("Error inserting aircraft into database: {}", e))
+            })
+            .unwrap();
+    }
+    writer
+        .finish()
+        .await
+        .map_err(|e| Error::AdsbxDbError(format!("Error inserting aircraft into database: {}", e)))
+        .unwrap();
 }

@@ -125,28 +125,26 @@ CREATE TABLE adsbx_acas_ra (
 -- Aircraft Table
 DROP TABLE IF EXISTS adsbx_aircraft CASCADE;
 CREATE TABLE adsbx_aircraft (
-    id SERIAL PRIMARY KEY,
-    acas_ra_id INTEGER REFERENCES adsbx_acas_ra (id),
-    adsb_version INTEGER,
+    adsb_version SMALLINT,
     aircraft_type VARCHAR(16),
     barometric_altitude INTEGER,
     call_sign VARCHAR(32),
-    emergency_id INTEGER REFERENCES adsbx_emergency (id),
+    emergency_id SMALLINT REFERENCES adsbx_emergency (id),
     geometric_altitude INTEGER,
     gps_ok_before TIMESTAMP WITH TIME ZONE,
-    ground_speed_knots DOUBLE PRECISION,
+    ground_speed_knots real,
     hex VARCHAR(32) NOT NULL,
-    lat DOUBLE PRECISION,
-    lon DOUBLE PRECISION,
-    nac_p INTEGER,
-    nic INTEGER,
-    outside_air_temperature DOUBLE PRECISION,
+    lat REAL,
+    lon REAL,
+    nac_p SMALLINT,
+    nic SMALLINT,
+    outside_air_temperature REAL,
     registration VARCHAR(32),
-    roll DOUBLE PRECISION,
+    roll REAL,
     seen TIMESTAMP WITH TIME ZONE NOT NULL,
-    squawk VARCHAR(16),
-    wind_direction INTEGER,
-    wind_speed INTEGER
+    squawk VARCHAR(4),
+    wind_direction SMALLINT,
+    wind_speed SMALLINT
 );
 
 -- NavMode relation table
